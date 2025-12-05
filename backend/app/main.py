@@ -66,3 +66,285 @@ async def startup_event():
         print(f"⚠️ Migration error: {migration_error}")
     
     print("✅ Backend startup completed - table creation and migration completed")
+
+
+class Client(BaseModel):
+    id: str
+    name: str
+    email: str
+    phone: str
+    address: str
+    tax_id: Optional[str] = None
+    vekalet_ofis_no: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+class ClientCreate(BaseModel):
+    name: str
+    email: str
+    phone: str
+    address: str
+    tax_id: Optional[str] = None
+    vekalet_ofis_no: Optional[str] = None
+
+class ClientUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    tax_id: Optional[str] = None
+    vekalet_ofis_no: Optional[str] = None
+    version: int
+
+class Case(BaseModel):
+    id: str
+    title: str
+    case_name: Optional[str] = None
+    description: Optional[str] = None
+    client_id: str
+    client_name: str
+    case_type: str
+    status: str
+    court: str
+    case_number: str
+    defendant: str
+    notes: Optional[str] = None
+    start_date: date
+    next_hearing_date: Optional[date] = None
+    reminder_date: Optional[date] = None
+    office_archive_no: str
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+class CaseCreate(BaseModel):
+    title: str
+    case_name: Optional[str] = None
+    description: Optional[str] = None
+    client_id: str
+    case_type: str
+    status: str
+    court: str
+    case_number: str
+    defendant: str
+    notes: Optional[str] = None
+    start_date: date
+    next_hearing_date: Optional[date] = None
+    reminder_date: Optional[date] = None
+    office_archive_no: str
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+
+class CaseUpdate(BaseModel):
+    title: Optional[str] = None
+    case_name: Optional[str] = None
+    description: Optional[str] = None
+    client_id: Optional[str] = None
+    case_type: Optional[str] = None
+    status: Optional[str] = None
+    court: Optional[str] = None
+    case_number: Optional[str] = None
+    defendant: Optional[str] = None
+    notes: Optional[str] = None
+    start_date: Optional[date] = None
+    next_hearing_date: Optional[date] = None
+    reminder_date: Optional[date] = None
+    office_archive_no: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+    version: Optional[int] = None
+
+class CompensationLetter(BaseModel):
+    id: str
+    title: str
+    client_id: str
+    client_name: str
+    letter_number: str
+    bank: str
+    customer_number: str
+    customer: str
+    court: str
+    case_number: str
+    status: str
+    description_text: Optional[str] = None
+    reminder_date: Optional[date] = None
+    reminder_text: Optional[str] = None
+    responsible_person: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+class CompensationLetterCreate(BaseModel):
+    client_id: str
+    letter_number: str
+    bank: str
+    customer_number: str
+    customer: str
+    court: str
+    case_number: str
+    status: str
+    description_text: Optional[str] = None
+    reminder_date: Optional[date] = None
+    reminder_text: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+
+class CompensationLetterUpdate(BaseModel):
+    client_id: Optional[str] = None
+    letter_number: Optional[str] = None
+    bank: Optional[str] = None
+    customer_number: Optional[str] = None
+    customer: Optional[str] = None
+    court: Optional[str] = None
+    case_number: Optional[str] = None
+    status: Optional[str] = None
+    description_text: Optional[str] = None
+    reminder_date: Optional[date] = None
+    reminder_text: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+    version: Optional[int] = None
+
+class Execution(BaseModel):
+    id: str
+    client_id: str
+    client_name: str
+    defendant: str
+    execution_office: str
+    execution_number: str
+    status: str
+    execution_type: str
+    start_date: date
+    office_archive_no: str
+    reminder_date: Optional[date] = None
+    reminder_text: Optional[str] = None
+    notes: Optional[str] = None
+    haciz_durumu: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+class ExecutionCreate(BaseModel):
+    client_id: str
+    defendant: str
+    execution_office: str
+    execution_number: str
+    status: str
+    execution_type: str
+    start_date: date
+    office_archive_no: str
+    reminder_date: Optional[date] = None
+    reminder_text: Optional[str] = None
+    notes: Optional[str] = None
+    haciz_durumu: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+
+class ExecutionUpdate(BaseModel):
+    client_id: Optional[str] = None
+    defendant: Optional[str] = None
+    execution_office: Optional[str] = None
+    execution_number: Optional[str] = None
+    status: Optional[str] = None
+    execution_type: Optional[str] = None
+    start_date: Optional[date] = None
+    office_archive_no: Optional[str] = None
+    reminder_date: Optional[date] = None
+    reminder_text: Optional[str] = None
+    notes: Optional[str] = None
+    haciz_durumu: Optional[str] = None
+    responsible_person: Optional[str] = None
+    görevlendiren: Optional[str] = None
+    version: Optional[int] = None
+
+def db_to_pydantic_client(db_client: ClientDB) -> Client:
+    return Client(
+        id=db_client.id,
+        name=db_client.name,
+        email=db_client.email,
+        phone=db_client.phone,
+        address=db_client.address,
+        tax_id=db_client.tax_id,
+        vekalet_ofis_no=db_client.vekalet_ofis_no,
+        created_at=db_client.created_at,
+        updated_at=db_client.updated_at,
+        version=db_client.version
+    )
+
+def db_to_pydantic_case(db_case: CaseDB) -> Case:
+    return Case(
+        id=db_case.id,
+        title=db_case.title,
+        case_name=db_case.case_name,
+        description=db_case.description,
+        client_id=db_case.client_id,
+        client_name=db_case.client_name,
+        case_type=db_case.case_type,
+        status=db_case.status,
+        court=db_case.court,
+        case_number=db_case.case_number,
+        defendant=db_case.defendant,
+        notes=db_case.notes,
+        start_date=db_case.start_date,
+        next_hearing_date=db_case.next_hearing_date,
+        reminder_date=db_case.reminder_date,
+        office_archive_no=db_case.office_archive_no,
+        responsible_person=db_case.responsible_person,
+        görevlendiren=db_case.görevlendiren,
+        created_at=db_case.created_at,
+        updated_at=db_case.updated_at,
+        version=db_case.version
+    )
+
+def db_to_pydantic_compensation_letter(db_letter: CompensationLetterDB) -> CompensationLetter:
+    return CompensationLetter(
+        id=db_letter.id,
+        title=db_letter.title,
+        client_id=db_letter.client_id,
+        client_name=db_letter.client_name,
+        letter_number=db_letter.letter_number,
+        bank=db_letter.bank,
+        customer_number=db_letter.customer_number,
+        customer=db_letter.customer,
+        court=db_letter.court,
+        case_number=db_letter.case_number,
+        status=db_letter.status,
+        description_text=db_letter.description_text,
+        reminder_date=db_letter.reminder_date,
+        reminder_text=db_letter.reminder_text,
+        responsible_person=db_letter.responsible_person,
+        görevlendiren=db_letter.görevlendiren,
+        created_at=db_letter.created_at,
+        updated_at=db_letter.updated_at,
+        version=db_letter.version
+    )
+
+def db_to_pydantic_execution(db_execution: ExecutionDB) -> Execution:
+    return Execution(
+        id=db_execution.id,
+        client_id=db_execution.client_id,
+        client_name=db_execution.client_name,
+        defendant=db_execution.defendant,
+        execution_office=db_execution.execution_office,
+        execution_number=db_execution.execution_number,
+        status=db_execution.status,
+        execution_type=db_execution.execution_type,
+        start_date=db_execution.start_date,
+        office_archive_no=db_execution.office_archive_no,
+        reminder_date=db_execution.reminder_date,
+        reminder_text=db_execution.reminder_text,
+        notes=db_execution.notes,
+        haciz_durumu=db_execution.haciz_durumu,
+        responsible_person=db_execution.responsible_person,
+        görevlendiren=db_execution.görevlendiren,
+        created_at=db_execution.created_at,
+        updated_at=db_execution.updated_at,
+        version=db_execution.version
+    )
