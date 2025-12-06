@@ -5,7 +5,12 @@ from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any, Set
 from datetime import datetime, date
+import json
+import uuid
+import jwt
 import os
+import asyncio
+import threading
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text, Index, ForeignKey, or_
@@ -356,3 +361,114 @@ def db_to_pydantic_execution(db_execution: ExecutionDB) -> Execution:
         updated_at=db_execution.updated_at,
         version=db_execution.version
     )
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+JWT_SECRET = os.getenv("JWT_SECRET")
+
+if not ADMIN_PASSWORD:
+    raise ValueError("ADMIN_PASSWORD environment variable is required")
+if not JWT_SECRET:
+    raise ValueError("JWT_SECRET environment variable is required")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, Set[WebSocket]] = {}
+        self.connection_lock = threading.Lock()
+
+    def connect(self, websocket: WebSocket, user_token: str):
+        with self.connection_lock:
+            if user_token not in self.active_connections:
+                self.active_connections[user_token] = set()
+            self.active_connections[user_token].add(websocket)
+
+    def disconnect(self, websocket: WebSocket, user_token: str):
+        with self.connection_lock:
+            if user_token in self.active_connections:
+                self.active_connections[user_token].discard(websocket)
+                if not self.active_connections[user_token]:
+                    del self.active_connections[user_token]
+
+    async def broadcast_data_change(self, change_type: str, entity_type: str, entity_id: str, data: dict):
+        serializable_data = self._make_serializable(data)
+        
+        message = {
+            "type": "data_change",
+            "change_type": change_type,
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "data": serializable_data,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        disconnected_connections = []
+        with self.connection_lock:
+            for user_token, connections in self.active_connections.items():
+                for connection in connections.copy():
+                    try:
+                        await connection.send_text(json.dumps(message))
+                    except Exception as e:
+                        print(f"Error sending WebSocket message: {e}")
+                        disconnected_connections.append((connection, user_token))
+        
+        for connection, user_token in disconnected_connections:
+            self.disconnect(connection, user_token)
+    
+    def _make_serializable(self, obj):
+        """Convert datetime objects to ISO format strings for JSON serialization"""
+        if isinstance(obj, dict):
+            return {key: self._make_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [self._make_serializable(item) for item in obj]
+        elif isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        else:
+            return obj
+manager = ConnectionManager()
+
+class LoginRequest(BaseModel):
+    password: str
+
+class LoginResponse(BaseModel):
+    token: str
+
+class PasswordChangeRequest(BaseModel):
+    new_password: str
+
+def verify_token(token: str = Depends(HTTPBearer())):
+    try:
+        payload = jwt.decode(token.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.websocket("/ws/{token}")
+async def websocket_endpoint(websocket: WebSocket, token: str):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        await websocket.accept()
+        manager.connect(websocket, token)
+
+        import asyncio
+        async def ping_task():
+            while True:
+                try:
+                    await asyncio.sleep(25)
+                    if websocket.client_state == websocket.client_state.CONNECTED:
+                        await websocket.ping()
+                except Exception:
+                    break
+
+        ping_coroutine = asyncio.create_task(ping_task())
+
+        try:
+            while True:
+                data = await websocket.receive_text()
+                print(f"Received WebSocket message: {data}")
+        except WebSocketDisconnect:
+            ping_coroutine.cancel()
+            manager.disconnect(websocket, token)
+    except jwt.InvalidTokenError:
+        await websocket.close(code=1008)
