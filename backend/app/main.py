@@ -1,8 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
+from fastapi.security import HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any, Set
+from datetime import datetime, date
 import os
-from app.database import create_tables
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import text, Index, ForeignKey, or_
+import logging
+from app.database import get_db, create_tables, ClientDB, CaseDB, CompensationLetterDB, ExecutionDB
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -55,13 +63,13 @@ async def startup_event():
         SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
         with SessionLocal() as db:
             try:
-                db.execute(text("SELECT vekalet_ofis_no FROM clients LIMIT 1"))
-                print("✅ vekalet_ofis_no column already exists")
+                db.execute(text("SELECT custody_no FROM clients LIMIT 1"))
+                print("✅ custody_no column already exists")
             except Exception:
-                print("🔧 Adding vekalet_ofis_no column to clients table...")
-                db.execute(text("ALTER TABLE clients ADD COLUMN vekalet_ofis_no VARCHAR"))
+                print("🔧 Adding custody_no column to clients table...")
+                db.execute(text("ALTER TABLE clients ADD COLUMN custody_no VARCHAR"))
                 db.commit()
-                print("✅ Successfully added vekalet_ofis_no column")
+                print("✅ Successfully added custody_no column")
     except Exception as migration_error:
         print(f"⚠️ Migration error: {migration_error}")
     
@@ -75,7 +83,7 @@ class Client(BaseModel):
     phone: str
     address: str
     tax_id: Optional[str] = None
-    vekalet_ofis_no: Optional[str] = None
+    custody_no: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     version: int
@@ -86,7 +94,7 @@ class ClientCreate(BaseModel):
     phone: str
     address: str
     tax_id: Optional[str] = None
-    vekalet_ofis_no: Optional[str] = None
+    custody_no: Optional[str] = None
 
 class ClientUpdate(BaseModel):
     name: Optional[str] = None
@@ -94,7 +102,7 @@ class ClientUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     tax_id: Optional[str] = None
-    vekalet_ofis_no: Optional[str] = None
+    custody_no: Optional[str] = None
     version: int
 
 class Case(BaseModel):
@@ -115,7 +123,7 @@ class Case(BaseModel):
     reminder_date: Optional[date] = None
     office_archive_no: str
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     version: int
@@ -136,7 +144,7 @@ class CaseCreate(BaseModel):
     reminder_date: Optional[date] = None
     office_archive_no: str
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
 
 class CaseUpdate(BaseModel):
     title: Optional[str] = None
@@ -154,7 +162,7 @@ class CaseUpdate(BaseModel):
     reminder_date: Optional[date] = None
     office_archive_no: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
     version: Optional[int] = None
 
 class CompensationLetter(BaseModel):
@@ -174,7 +182,7 @@ class CompensationLetter(BaseModel):
     reminder_text: Optional[str] = None
     responsible_person: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     version: int
@@ -192,7 +200,7 @@ class CompensationLetterCreate(BaseModel):
     reminder_date: Optional[date] = None
     reminder_text: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
 
 class CompensationLetterUpdate(BaseModel):
     client_id: Optional[str] = None
@@ -207,7 +215,7 @@ class CompensationLetterUpdate(BaseModel):
     reminder_date: Optional[date] = None
     reminder_text: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
     version: Optional[int] = None
 
 class Execution(BaseModel):
@@ -226,7 +234,7 @@ class Execution(BaseModel):
     notes: Optional[str] = None
     haciz_durumu: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     version: int
@@ -245,7 +253,7 @@ class ExecutionCreate(BaseModel):
     notes: Optional[str] = None
     haciz_durumu: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
 
 class ExecutionUpdate(BaseModel):
     client_id: Optional[str] = None
@@ -261,7 +269,7 @@ class ExecutionUpdate(BaseModel):
     notes: Optional[str] = None
     haciz_durumu: Optional[str] = None
     responsible_person: Optional[str] = None
-    görevlendiren: Optional[str] = None
+    commisioner: Optional[str] = None
     version: Optional[int] = None
 
 def db_to_pydantic_client(db_client: ClientDB) -> Client:
@@ -272,7 +280,7 @@ def db_to_pydantic_client(db_client: ClientDB) -> Client:
         phone=db_client.phone,
         address=db_client.address,
         tax_id=db_client.tax_id,
-        vekalet_ofis_no=db_client.vekalet_ofis_no,
+        custody_no=db_client.custody_no,
         created_at=db_client.created_at,
         updated_at=db_client.updated_at,
         version=db_client.version
@@ -297,7 +305,7 @@ def db_to_pydantic_case(db_case: CaseDB) -> Case:
         reminder_date=db_case.reminder_date,
         office_archive_no=db_case.office_archive_no,
         responsible_person=db_case.responsible_person,
-        görevlendiren=db_case.görevlendiren,
+        commisioner=db_case.commisioner,
         created_at=db_case.created_at,
         updated_at=db_case.updated_at,
         version=db_case.version
@@ -320,7 +328,7 @@ def db_to_pydantic_compensation_letter(db_letter: CompensationLetterDB) -> Compe
         reminder_date=db_letter.reminder_date,
         reminder_text=db_letter.reminder_text,
         responsible_person=db_letter.responsible_person,
-        görevlendiren=db_letter.görevlendiren,
+        commisioner=db_letter.commisioner,
         created_at=db_letter.created_at,
         updated_at=db_letter.updated_at,
         version=db_letter.version
@@ -343,7 +351,7 @@ def db_to_pydantic_execution(db_execution: ExecutionDB) -> Execution:
         notes=db_execution.notes,
         haciz_durumu=db_execution.haciz_durumu,
         responsible_person=db_execution.responsible_person,
-        görevlendiren=db_execution.görevlendiren,
+        commisioner=db_execution.commisioner,
         created_at=db_execution.created_at,
         updated_at=db_execution.updated_at,
         version=db_execution.version
