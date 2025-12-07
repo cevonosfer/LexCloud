@@ -361,7 +361,6 @@ def db_to_pydantic_execution(db_execution: ExecutionDB) -> Execution:
         updated_at=db_execution.updated_at,
         version=db_execution.version
     )
-
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 JWT_SECRET = os.getenv("JWT_SECRET")
 
@@ -425,7 +424,6 @@ class ConnectionManager:
             return obj.isoformat()
         else:
             return obj
-        
 manager = ConnectionManager()
 
 class LoginRequest(BaseModel):
