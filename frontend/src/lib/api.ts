@@ -1,7 +1,7 @@
 const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
 
-import type { Client, ClientCreate, ClientUpdate} from '../types'
-export type { Client, ClientCreate, ClientUpdate}
+import type { Client, ClientCreate, ClientUpdate, DashboardData} from '../types'
+export type { Client, ClientCreate, ClientUpdate, DashboardData}
 
 
 
@@ -73,4 +73,32 @@ export const api = {
       method: 'DELETE',
     }),
   },
+
+  dashboard: {
+    getData: () => apiRequest<DashboardData>('/api/dashboard'),
+  },
+  
+  auth: {
+    changePassword: (currentPassword: string, newPassword: string) => 
+      apiRequest<{ message: string }>('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      }),
+  },
+  
+  backup: {
+    export: () => apiRequest<any>('/api/backup'),
+    import: (data: any) => apiRequest<{ message: string }>('/api/restore', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  },
+
+
+ /** cases */
+
+ /** compensation letters */
+
+ /** executions */
+
 }

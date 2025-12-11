@@ -28,3 +28,42 @@ export interface ClientUpdate {
   tax_id?: string
   vekalet_ofis_no?: string
   version: number}
+
+export interface DashboardData {
+  total_cases: number
+  total_clients: number
+  total_executions: number
+  total_compensation_letters: number
+  status_counts: Record<string, number>
+  upcoming_hearings: Array<{
+    case_id: string
+    case_title: string
+    case_number: string
+    client_name: string
+    hearing_date: string
+    court: string
+    defendant: string
+  }>
+  upcoming_reminders: Array<{
+    type: 'case' | 'execution' | 'compensation_letter'
+    case_id?: string
+    case_title?: string
+    case_name?: string
+    case_number?: string
+    execution_id?: string
+    execution_number?: string
+    execution_office?: string
+    compensation_letter_id?: string
+    letter_number?: string
+    customer?: string
+    client_name: string
+    reminder_date: string
+    court?: string
+    status?: string
+    defendant?: string
+    description?: string
+    reminder_text?: string
+    responsible_person?: string
+    görevlendiren?: string
+  }>
+}
