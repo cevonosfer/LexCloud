@@ -472,3 +472,204 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
             manager.disconnect(websocket, token)
     except jwt.InvalidTokenError:
         await websocket.close(code=1008)
+
+
+@app.post("/api/clients", response_model=Client)
+async def create_client(client: ClientCreate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    client_id = str(uuid.uuid4())
+    now = datetime.now()
+    
+    db_client = ClientDB(
+        id=client_id,
+        name=client.name,
+        email=client.email,
+        phone=client.phone,
+        address=client.address,
+        tax_id=client.tax_id,
+        vekalet_ofis_no=client.vekalet_ofis_no,
+        created_at=now,
+        updated_at=now,
+        version=1,
+        is_deleted=False
+    )
+    
+    db.add(db_client)
+    db.commit()
+    db.refresh(db_client)
+    
+    new_client = db_to_pydantic_client(db_client)
+    await manager.broadcast_data_change("create", "client", client_id, new_client.dict())
+    
+    return new_client
+
+@app.get("/api/clients", response_model=List[Client])
+async def get_clients(
+    page: int = Query(1, ge=1),
+    limit: int = Query(1000, ge=1, le=10000),
+    db: Session = Depends(get_db), 
+    token: str = Depends(verify_token)
+):
+    offset = (page - 1) * limit
+    db_clients = db.query(ClientDB).filter(ClientDB.is_deleted == False).order_by(ClientDB.updated_at.desc()).offset(offset).limit(limit).all()
+    return [db_to_pydantic_client(client) for client in db_clients]
+
+@app.get("/api/clients/{client_id}", response_model=Client)
+async def get_client(client_id: str, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_client = db.query(ClientDB).filter(ClientDB.id == client_id, ClientDB.is_deleted == False).first()
+    if not db_client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return db_to_pydantic_client(db_client)
+
+@app.put("/api/clients/{client_id}", response_model=Client)
+async def update_client(client_id: str, client_update: ClientUpdate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_client = db.query(ClientDB).filter(ClientDB.id == client_id, ClientDB.is_deleted == False).first()
+    if not db_client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    if client_update.version is not None and db_client.version != client_update.version:
+        raise HTTPException(status_code=409, detail="Version conflict. Please refresh and try again.")
+    
+    update_data = client_update.dict(exclude_unset=True, exclude={"version"})
+    for field, value in update_data.items():
+        setattr(db_client, field, value)
+    
+    db_client.updated_at = datetime.now()
+    db_client.version += 1
+    
+    try:
+        db.commit()
+        db.refresh(db_client)
+        
+        client = db_to_pydantic_client(db_client)
+        await manager.broadcast_data_change("update", "client", client_id, client.dict())
+        
+        print(f"Client updated successfully: {client_id}")
+        return client
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating client {client_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update client")
+
+@app.delete("/api/clients/{client_id}")
+async def delete_client(client_id: str, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_client = db.query(ClientDB).filter(ClientDB.id == client_id, ClientDB.is_deleted == False).first()
+    if not db_client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    db_client.is_deleted = True
+    db_client.updated_at = datetime.now()
+    db.commit()
+    
+    await manager.broadcast_data_change("delete", "client", client_id, {})
+    
+    return {"message": "Client deleted successfully"} 
+
+
+@app.get("/api/dashboard")
+async def get_dashboard(db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    total_cases = db.query(CaseDB).filter(CaseDB.is_deleted == False).count()
+    total_clients = db.query(ClientDB).filter(ClientDB.is_deleted == False).count()
+    total_executions = db.query(ExecutionDB).filter(ExecutionDB.is_deleted == False).count()
+    total_compensation_letters = db.query(CompensationLetterDB).filter(CompensationLetterDB.is_deleted == False).count()
+    
+    upcoming_reminders = []
+    
+    db_cases = db.query(CaseDB).filter(CaseDB.reminder_date.isnot(None), CaseDB.is_deleted == False).all()
+    for case in db_cases:
+        if case.reminder_date:
+            reminder_date = case.reminder_date
+            days_until = (reminder_date - date.today()).days
+            
+            if 0 <= days_until <= 7:
+                upcoming_reminders.append({
+                    "type": "case",
+                    "case_id": case.id,
+                    "case_number": case.case_number,
+                    "case_name": case.case_name,
+                    "court": case.court,
+                    "client_name": case.client_name,
+                    "defendant": case.defendant,
+                    "reminder_date": reminder_date.isoformat(),
+                    "description": case.description,
+                    "responsible_person": case.responsible_person,
+                    "görevlendiren": case.görevlendiren,
+                    "days_until": days_until
+                })
+    
+    db_executions = db.query(ExecutionDB).filter(ExecutionDB.reminder_date.isnot(None), ExecutionDB.is_deleted == False).all()
+    for execution in db_executions:
+        if execution.reminder_date:
+            reminder_date = execution.reminder_date
+            days_until = (reminder_date - date.today()).days
+            
+            if 0 <= days_until <= 7:
+                upcoming_reminders.append({
+                    "type": "execution",
+                    "execution_id": execution.id,
+                    "execution_number": execution.execution_number,
+                    "execution_office": execution.execution_office,
+                    "client_name": execution.client_name,
+                    "defendant": execution.defendant,
+                    "reminder_date": reminder_date.isoformat(),
+                    "reminder_text": execution.reminder_text,
+                    "responsible_person": execution.responsible_person,
+                    "görevlendiren": execution.görevlendiren,
+                    "days_until": days_until
+                })
+    
+    db_compensation_letters = db.query(CompensationLetterDB).filter(CompensationLetterDB.reminder_date.isnot(None), CompensationLetterDB.is_deleted == False).all()
+    for letter in db_compensation_letters:
+        if letter.reminder_date:
+            reminder_date = letter.reminder_date
+            days_until = (reminder_date - date.today()).days
+            
+            if 0 <= days_until <= 7:
+                upcoming_reminders.append({
+                    "type": "compensation_letter",
+                    "compensation_letter_id": letter.id,
+                    "letter_number": letter.letter_number,
+                    "court": letter.court,
+                    "case_number": letter.case_number,
+                    "customer": letter.customer,
+                    "client_name": letter.client_name,
+                    "reminder_date": reminder_date.isoformat(),
+                    "reminder_text": letter.reminder_text,
+                    "responsible_person": letter.responsible_person,
+                    "görevlendiren": letter.görevlendiren,
+                    "days_until": days_until
+                })
+    
+    upcoming_reminders.sort(key=lambda x: x["days_until"])
+    
+    status_counts = {}
+    db_cases = db.query(CaseDB).filter(CaseDB.is_deleted == False).all()
+    for case in db_cases:
+        status = case.status
+        status_counts[status] = status_counts.get(status, 0) + 1
+    
+    return {
+        "total_cases": total_cases,
+        "total_clients": total_clients,
+        "total_executions": total_executions,
+        "total_compensation_letters": total_compensation_letters,
+        "status_counts": status_counts,
+        "upcoming_reminders": upcoming_reminders
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Fly.io"""
+    try:
+        db = next(get_db())
+        db.execute(text("SELECT 1"))
+        db.close()
+
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logging.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unavailable")
