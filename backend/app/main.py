@@ -855,3 +855,137 @@ async def search_cases(
     
     db_cases = query.all()
     return [db_to_pydantic_case(case) for case in db_cases]
+
+@app.post("/api/executions", response_model=Execution)
+async def create_execution(execution: ExecutionCreate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    execution_id = str(uuid.uuid4())
+    now = datetime.now()
+    
+    db_client = db.query(ClientDB).filter(ClientDB.id == execution.client_id, ClientDB.is_deleted == False).first()
+    if not db_client:
+        raise HTTPException(status_code=400, detail="Invalid client ID")
+    
+    db_execution = ExecutionDB(
+        id=execution_id,
+        client_id=execution.client_id,
+        client_name=db_client.name,
+        defendant=execution.defendant,
+        execution_office=execution.execution_office,
+        execution_number=execution.execution_number,
+        status=execution.status,
+        execution_type=execution.execution_type,
+        start_date=execution.start_date,
+        office_archive_no=execution.office_archive_no,
+        reminder_date=execution.reminder_date,
+        reminder_text=execution.reminder_text,
+        notes=execution.notes,
+        haciz_durumu=execution.haciz_durumu,
+        responsible_person=execution.responsible_person,
+        görevlendiren=execution.görevlendiren,
+        created_at=now,
+        updated_at=now,
+        version=1
+    )
+    
+    try:
+        db.add(db_execution)
+        db.commit()
+        db.refresh(db_execution)
+        
+        new_execution = db_to_pydantic_execution(db_execution)
+        await manager.broadcast_data_change("create", "execution", execution_id, new_execution.dict())
+        
+        print(f"Execution created successfully: {execution_id}")
+        return new_execution
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating execution: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create execution")
+
+@app.get("/api/executions", response_model=List[Execution])
+async def get_executions(
+    status: Optional[str] = None,
+    client_id: Optional[str] = None,
+    haciz_durumu: Optional[str] = None,
+    responsible_person: Optional[str] = None,
+    görevlendiren: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(1000, ge=1, le=10000),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    query = db.query(ExecutionDB).filter(ExecutionDB.is_deleted == False)
+    if status:
+        query = query.filter(ExecutionDB.status == status)
+    if client_id:
+        query = query.filter(ExecutionDB.client_id == client_id)
+    if responsible_person:
+        query = query.filter(ExecutionDB.responsible_person == responsible_person)
+    if görevlendiren:
+        query = query.filter(ExecutionDB.görevlendiren == görevlendiren)
+    if haciz_durumu:
+        query = query.filter(ExecutionDB.haciz_durumu == haciz_durumu)
+    
+    offset = (page - 1) * limit
+    db_executions = query.order_by(ExecutionDB.updated_at.desc()).offset(offset).limit(limit).all()
+    return [db_to_pydantic_execution(execution) for execution in db_executions]
+
+@app.get("/api/executions/{execution_id}", response_model=Execution)
+async def get_execution(execution_id: str, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_execution = db.query(ExecutionDB).filter(ExecutionDB.id == execution_id, ExecutionDB.is_deleted == False).first()
+    if not db_execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    return db_to_pydantic_execution(db_execution)
+
+@app.put("/api/executions/{execution_id}", response_model=Execution)
+async def update_execution(execution_id: str, execution_update: ExecutionUpdate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_execution = db.query(ExecutionDB).filter(ExecutionDB.id == execution_id, ExecutionDB.is_deleted == False).first()
+    if not db_execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    
+    if execution_update.version is not None and db_execution.version != execution_update.version:
+        raise HTTPException(status_code=409, detail="Version conflict. Please refresh and try again.")
+    
+    if execution_update.client_id:
+        db_client = db.query(ClientDB).filter(ClientDB.id == execution_update.client_id, ClientDB.is_deleted == False).first()
+        if not db_client:
+            raise HTTPException(status_code=400, detail="Invalid client ID")
+    
+    update_data = execution_update.dict(exclude_unset=True, exclude={"version"})
+    for field, value in update_data.items():
+        setattr(db_execution, field, value)
+    
+    if execution_update.client_id:
+        db_client = db.query(ClientDB).filter(ClientDB.id == execution_update.client_id, ClientDB.is_deleted == False).first()
+        db_execution.client_name = db_client.name
+    
+    db_execution.updated_at = datetime.now()
+    db_execution.version += 1
+    
+    try:
+        db.commit()
+        db.refresh(db_execution)
+        
+        execution = db_to_pydantic_execution(db_execution)
+        await manager.broadcast_data_change("update", "execution", execution_id, execution.dict())
+        
+        print(f"Execution updated successfully: {execution_id}")
+        return execution
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating execution {execution_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update execution")
+
+@app.delete("/api/executions/{execution_id}")
+async def delete_execution(execution_id: str, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_execution = db.query(ExecutionDB).filter(ExecutionDB.id == execution_id, ExecutionDB.is_deleted == False).first()
+    if not db_execution:
+        raise HTTPException(status_code=404, detail="Execution not found")
+    
+    db_execution.is_deleted = True
+    db_execution.updated_at = datetime.now()
+    db.commit()
+    
+    await manager.broadcast_data_change("delete", "execution", execution_id, {})
+    
+    return {"message": "Execution deleted successfully"}
