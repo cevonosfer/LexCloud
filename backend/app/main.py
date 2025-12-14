@@ -673,3 +673,185 @@ async def health_check():
     except Exception as e:
         logging.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unavailable")
+    
+
+@app.post("/api/cases", response_model=Case)
+async def create_case(case: CaseCreate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    case_id = str(uuid.uuid4())
+    now = datetime.now()
+    
+    db_client = db.query(ClientDB).filter(ClientDB.id == case.client_id, ClientDB.is_deleted == False).first()
+    if not db_client:
+        raise HTTPException(status_code=400, detail="Invalid client ID")
+    
+    db_case = CaseDB(
+        id=case_id,
+        title=case.title,
+        case_name=case.case_name,
+        description=case.description,
+        client_id=case.client_id,
+        client_name=db_client.name,
+        case_type=case.case_type,
+        status=case.status,
+        court=case.court,
+        case_number=case.case_number,
+        defendant=case.defendant,
+        notes=case.notes,
+        start_date=case.start_date,
+        next_hearing_date=case.next_hearing_date,
+        reminder_date=case.reminder_date,
+        office_archive_no=case.office_archive_no,
+        responsible_person=case.responsible_person,
+        görevlendiren=case.görevlendiren,
+        created_at=now,
+        updated_at=now,
+        version=1
+    )
+    
+    try:
+        db.add(db_case)
+        db.commit()
+        db.refresh(db_case)
+        
+        new_case = db_to_pydantic_case(db_case)
+        await manager.broadcast_data_change("create", "case", case_id, new_case.dict())
+        
+        print(f"Case created successfully: {case_id}")
+        return new_case
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating case: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create case")
+
+@app.get("/api/cases", response_model=List[Case])
+async def get_cases(
+    status: Optional[str] = None, 
+    query: Optional[str] = None,
+    responsible_person: Optional[str] = None,
+    görevlendiren: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(1000, ge=1, le=10000),
+    db: Session = Depends(get_db), 
+    token: str = Depends(verify_token)
+):
+    db_query = db.query(CaseDB).filter(CaseDB.is_deleted == False)
+    if status:
+        db_query = db_query.filter(CaseDB.status == status)
+    if responsible_person:
+        db_query = db_query.filter(CaseDB.responsible_person == responsible_person)
+    if görevlendiren:
+        db_query = db_query.filter(CaseDB.görevlendiren == görevlendiren)
+    if query:
+        db_query = db_query.filter(
+            or_(
+                CaseDB.title.ilike(f"%{query}%"),
+                CaseDB.defendant.ilike(f"%{query}%")
+            )
+        )
+    
+    offset = (page - 1) * limit
+    db_cases = db_query.order_by(CaseDB.updated_at.desc()).offset(offset).limit(limit).all()
+    return [db_to_pydantic_case(case) for case in db_cases]
+
+@app.get("/api/cases/{case_id}", response_model=Case)
+async def get_case(case_id: str, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_case = db.query(CaseDB).filter(CaseDB.id == case_id, CaseDB.is_deleted == False).first()
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    return db_to_pydantic_case(db_case)
+
+@app.put("/api/cases/{case_id}", response_model=Case)
+async def update_case(case_id: str, case_update: CaseUpdate, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_case = db.query(CaseDB).filter(CaseDB.id == case_id, CaseDB.is_deleted == False).first()
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    
+    if case_update.version is not None and db_case.version != case_update.version:
+        raise HTTPException(status_code=409, detail="Version conflict. Please refresh and try again.")
+    
+    if case_update.client_id:
+        db_client = db.query(ClientDB).filter(ClientDB.id == case_update.client_id, ClientDB.is_deleted == False).first()
+        if not db_client:
+            raise HTTPException(status_code=400, detail="Invalid client ID")
+    
+    update_data = case_update.dict(exclude_unset=True, exclude={"version"})
+    for field, value in update_data.items():
+        setattr(db_case, field, value)
+    
+    if case_update.client_id:
+        db_client = db.query(ClientDB).filter(ClientDB.id == case_update.client_id, ClientDB.is_deleted == False).first()
+        db_case.client_name = db_client.name
+    
+    db_case.updated_at = datetime.now()
+    db_case.version += 1
+    
+    try:
+        db.commit()
+        db.refresh(db_case)
+        
+        case = db_to_pydantic_case(db_case)
+        await manager.broadcast_data_change("update", "case", case_id, case.dict())
+        
+        print(f"Case updated successfully: {case_id}")
+        return case
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating case {case_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update case")
+
+@app.delete("/api/cases/{case_id}")
+async def delete_case(case_id: str, db: Session = Depends(get_db), token: str = Depends(verify_token)):
+    db_case = db.query(CaseDB).filter(CaseDB.id == case_id, CaseDB.is_deleted == False).first()
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    
+    db_case.is_deleted = True
+    db_case.updated_at = datetime.now()
+    db.commit()
+    
+    await manager.broadcast_data_change("delete", "case", case_id, {})
+    
+    return {"message": "Case deleted successfully"}
+
+class CaseSearchParams(BaseModel):
+    q: Optional[str] = None
+    status: Optional[str] = None
+    client_id: Optional[str] = None
+    court: Optional[str] = None
+    case_type: Optional[str] = None
+
+@app.get("/api/cases/search", response_model=List[Case])
+async def search_cases(
+    q: Optional[str] = None,
+    status: Optional[str] = None,
+    client_id: Optional[str] = None,
+    court: Optional[str] = None,
+    case_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    query = db.query(CaseDB)
+    
+    if q:
+        q_lower = f"%{q.lower()}%"
+        query = query.filter(
+            (CaseDB.title.ilike(q_lower)) |
+            (CaseDB.case_number.ilike(q_lower)) |
+            (CaseDB.defendant.ilike(q_lower)) |
+            (CaseDB.client_name.ilike(q_lower))
+        )
+    
+    if status:
+        query = query.filter(CaseDB.status == status)
+    
+    if client_id:
+        query = query.filter(CaseDB.client_id == client_id)
+    
+    if court:
+        query = query.filter(CaseDB.court.ilike(f"%{court}%"))
+    
+    if case_type:
+        query = query.filter(CaseDB.case_type == case_type)
+    
+    db_cases = query.all()
+    return [db_to_pydantic_case(case) for case in db_cases]

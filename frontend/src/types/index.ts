@@ -67,3 +67,75 @@ export interface DashboardData {
     görevlendiren?: string
   }>
 }
+
+
+export interface Case {
+  id: string
+  title: string
+  case_name?: string
+  description?: string
+  client_id: string
+  client_name: string
+  case_type: string
+  status: string
+  court: string
+  case_number: string
+  defendant: string
+  notes?: string
+  start_date: string
+  next_hearing_date?: string
+  reminder_date?: string
+  office_archive_no: string
+  responsible_person?: string
+  görevlendiren?: string
+  created_at: string
+  updated_at: string
+  version: number
+}
+
+export interface CaseCreate {
+  title: string
+  case_name?: string
+  description?: string
+  client_id: string
+  case_type: string
+  status: string
+  court: string
+  case_number: string
+  defendant: string
+  notes?: string
+  start_date: string
+  next_hearing_date?: string
+  reminder_date?: string
+  office_archive_no: string
+  responsible_person?: string
+  görevlendiren?: string
+}
+
+export interface CaseUpdate {
+  title?: string
+  case_name?: string
+  description?: string
+  case_type?: string
+  status?: string
+  court?: string
+  case_number?: string
+  defendant?: string
+  notes?: string
+  start_date?: string
+  next_hearing_date?: string
+  reminder_date?: string
+  office_archive_no?: string
+  responsible_person?: string
+  görevlendiren?: string
+  version?: number
+}
+
+export interface CaseSearchParams {
+  case_type?: string
+  status?: string
+  court?: string
+  client_id?: string
+  defendant?: string
+}
+
