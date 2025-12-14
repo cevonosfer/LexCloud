@@ -1,7 +1,7 @@
 const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
 
-import type { Client, ClientCreate, ClientUpdate, DashboardData} from '../types'
-export type { Client, ClientCreate, ClientUpdate, DashboardData}
+import type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams} from '../types'
+export type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams}
 
 
 
@@ -95,7 +95,44 @@ export const api = {
   },
 
 
- /** cases */
+ cases: {
+    getAll: (params?: { status?: string; client_id?: string; query?: string; responsible_person?: string; görevlendiren?: string; page?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams()
+      if (params?.status) searchParams.append('status', params.status)
+      if (params?.client_id) searchParams.append('client_id', params.client_id)
+      if (params?.query) searchParams.append('query', params.query)
+      if (params?.responsible_person) searchParams.append('responsible_person', params.responsible_person)
+      if (params?.görevlendiren) searchParams.append('görevlendiren', params.görevlendiren)
+      if (params?.page) searchParams.append('page', params.page.toString())
+      if (params?.limit) searchParams.append('limit', params.limit.toString())
+      
+      const query = searchParams.toString()
+      return apiRequest<Case[]>(`/api/cases${query ? `?${query}` : ''}`)
+    },
+    getById: (id: string) => apiRequest<Case>(`/api/cases/${id}`),
+    create: (data: CaseCreate) => apiRequest<Case>('/api/cases', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    update: (id: string, data: CaseUpdate) => apiRequest<Case>(`/api/cases/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id: string) => apiRequest<{ message: string }>(`/api/cases/${id}`, {
+      method: 'DELETE',
+    }),
+    search: (searchParams: CaseSearchParams) => {
+      const urlParams = new URLSearchParams()
+      if (searchParams.case_type) urlParams.append('case_type', searchParams.case_type)
+      if (searchParams.status) urlParams.append('status', searchParams.status)
+      if (searchParams.court) urlParams.append('court', searchParams.court)
+      if (searchParams.client_id) urlParams.append('client_id', searchParams.client_id)
+      if (searchParams.defendant) urlParams.append('q', searchParams.defendant)
+      
+      const query = urlParams.toString()
+      return apiRequest<Case[]>(`/api/cases/search${query ? `?${query}` : ''}`)
+    },
+  },
 
  /** compensation letters */
 
