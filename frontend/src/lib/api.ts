@@ -1,7 +1,7 @@
 const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
 
-import type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams} from '../types'
-export type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams}
+import type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams,Execution, ExecutionCreate, ExecutionUpdate} from '../types'
+export type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams,Execution, ExecutionCreate, ExecutionUpdate}
 
 
 
@@ -133,9 +133,29 @@ export const api = {
       return apiRequest<Case[]>(`/api/cases/search${query ? `?${query}` : ''}`)
     },
   },
-
+  executions: {
+    getAll: (params?: { status?: string; client_id?: string; responsible_person?: string; görevlendiren?: string }) => {
+      const searchParams = new URLSearchParams()
+      if (params?.status) searchParams.append('status', params.status)
+      if (params?.client_id) searchParams.append('client_id', params.client_id)
+      if (params?.responsible_person) searchParams.append('responsible_person', params.responsible_person)
+      if (params?.görevlendiren) searchParams.append('görevlendiren', params.görevlendiren)
+      
+      const query = searchParams.toString()
+      return apiRequest<Execution[]>(`/api/executions${query ? `?${query}` : ''}`)
+    },
+    getById: (id: string) => apiRequest<Execution>(`/api/executions/${id}`),
+    create: (data: ExecutionCreate) => apiRequest<Execution>('/api/executions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    update: (id: string, data: ExecutionUpdate) => apiRequest<Execution>(`/api/executions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id: string) => apiRequest<{ message: string }>(`/api/executions/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+  }
  /** compensation letters */
-
- /** executions */
-
-}
