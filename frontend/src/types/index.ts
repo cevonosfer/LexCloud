@@ -194,3 +194,59 @@ export interface ExecutionUpdate {
   görevlendiren?: string
   version?: number
 }
+
+
+export interface CompensationLetter {
+  id: string
+  title: string
+  client_id: string
+  client_name: string
+  letter_number: string
+  bank: string
+  customer_number: string
+  customer: string
+  court: string
+  case_number: string
+  status: string
+  description_text?: string
+  reminder_date?: string
+  reminder_text?: string
+  responsible_person?: string
+  görevlendiren?: string
+  created_at: string
+  updated_at: string
+  version: number
+}
+
+export interface CompensationLetterCreate {
+  client_id: string
+  letter_number: string
+  bank: string
+  customer_number: string
+  customer: string
+  court: string
+  case_number: string
+  status: string
+  description_text?: string
+  reminder_date?: string
+  reminder_text?: string
+  responsible_person?: string
+  görevlendiren?: string
+}
+
+export interface CompensationLetterUpdate {
+  client_id?: string
+  letter_number?: string
+  bank?: string
+  customer_number?: string
+  customer?: string
+  court?: string
+  case_number?: string
+  status?: string
+  description_text?: string
+  reminder_date?: string
+  reminder_text?: string
+  responsible_person?: string
+  görevlendiren?: string
+  version?: number
+}
