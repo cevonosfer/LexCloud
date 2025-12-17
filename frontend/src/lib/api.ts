@@ -1,7 +1,7 @@
 const API_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000'
 
-import type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams,Execution, ExecutionCreate, ExecutionUpdate} from '../types'
-export type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams,Execution, ExecutionCreate, ExecutionUpdate}
+import type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams,Execution, ExecutionCreate, ExecutionUpdate, CompensationLetter, CompensationLetterCreate, CompensationLetterUpdate} from '../types'
+export type { Client, ClientCreate, ClientUpdate, DashboardData, Case, CaseCreate, CaseUpdate, CaseSearchParams,Execution, ExecutionCreate, ExecutionUpdate, CompensationLetter, CompensationLetterCreate, CompensationLetterUpdate}
 
 
 
@@ -157,5 +157,30 @@ export const api = {
       method: 'DELETE',
     }),
   },
+
+  compensationLetters: {
+    getAll: (params?: { status?: string; client_id?: string; görevlendiren?: string }) => {
+      const searchParams = new URLSearchParams()
+      if (params?.status) searchParams.append('status', params.status)
+      if (params?.client_id) searchParams.append('client_id', params.client_id)
+      if (params?.görevlendiren) searchParams.append('görevlendiren', params.görevlendiren)
+      
+      const query = searchParams.toString()
+      return apiRequest<CompensationLetter[]>(`/api/compensation-letters${query ? `?${query}` : ''}`)
+    },
+    getById: (id: string) => apiRequest<CompensationLetter>(`/api/compensation-letters/${id}`),
+    create: (data: CompensationLetterCreate) => apiRequest<CompensationLetter>('/api/compensation-letters', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    update: (id: string, data: CompensationLetterUpdate) => apiRequest<CompensationLetter>(`/api/compensation-letters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id: string) => apiRequest<{ message: string }>(`/api/compensation-letters/${id}`, {
+      method: 'DELETE',
+    }),
+  },
+
   }
- /** compensation letters */
+ 
