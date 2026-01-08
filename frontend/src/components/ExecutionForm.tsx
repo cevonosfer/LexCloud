@@ -167,8 +167,8 @@ export default function ExecutionForm() {
       setClientsError("Müvekkiller yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.")
       setClientsLoading(false)
       toast({
-        title: "Hata",
-        description: "Müvekkiller yüklenirken bir hata oluştu.",
+        title: t.common.error,
+        description: t.clients.clientsLoadError,
         variant: "destructive",
       })
     } finally {
