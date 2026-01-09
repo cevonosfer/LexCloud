@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { api, DashboardData, request } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { useRealTimeData } from '@/hooks/use-real-time-data'
-import { useLanguage } from '@/contexts/LanguageContext'
+
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -20,7 +20,6 @@ export default function Dashboard() {
   const { toast } = useToast()
   const navigate = useNavigate()
   const { isConnected, hasChangesForEntity, clearDataChanges, isPollingFallback } = useRealTimeData()
-const { t, language } = useLanguage()
 
   useEffect(() => {
     loadDashboardData()
@@ -60,8 +59,8 @@ const { t, language } = useLanguage()
     } catch (error) {
       console.error('Dashboard loading error:', error)
       toast({
-        title: t.common.error,
-        description: t.common.error,
+        title: "Hata",
+        description: "Dashboard verileri yüklenirken bir hata oluştu.",
         variant: "destructive",
       })
       setTimeout(() => {
@@ -72,12 +71,6 @@ const { t, language } = useLanguage()
     }
   }
 
-  const getDateLocale = () => {
-    if (language === 'tr') return 'tr-TR'
-    if (language === 'de') return 'de-DE'
-    return 'en-US'
-  }
- 
   const todayReminders = (data?.upcoming_reminders || []).filter(reminder => {
     const today = new Date()
     const reminderDate = new Date(reminder.reminder_date)
@@ -101,7 +94,7 @@ const { t, language } = useLanguage()
   if (!data) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">{t.common.error}</p>
+        <p className="text-gray-500">Veriler yüklenemedi.</p>
       </div>
     )
   }
@@ -110,12 +103,12 @@ const { t, language } = useLanguage()
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-           <h1 className="text-3xl font-bold text-gray-900">{t.dashboard.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Anasayfa</h1>
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-1">
               <Server className="h-4 w-4" />
               <Badge variant={healthStatus.api ? "default" : "destructive"} className="text-xs">
-                 API {healthStatus.api ? t.dashboard.apiActive : t.dashboard.apiError}
+                API {healthStatus.api ? 'Aktif' : 'Hata'}
               </Badge>
             </div>
             <div className="flex items-center space-x-1">
@@ -125,23 +118,23 @@ const { t, language } = useLanguage()
                 <WifiOff className="h-4 w-4 text-red-600" />
               )}
               <Badge variant={isConnected ? "default" : "secondary"} className="text-xs">
-                WS {isConnected ? t.dashboard.wsConnected : (isPollingFallback ? t.dashboard.wsPolling : t.dashboard.wsClosed)}
+                WS {isConnected ? 'Bağlı' : (isPollingFallback ? 'Polling' : 'Kapalı')}
               </Badge>
             </div>
             <div className="flex items-center space-x-1">
               <Database className="h-4 w-4" />
               <Badge variant={healthStatus.database ? "default" : "destructive"} className="text-xs">
-                DB {healthStatus.database ? t.dashboard.dbActive : t.dashboard.dbError}
+                DB {healthStatus.database ? 'Aktif' : 'Hata'}
               </Badge>
             </div>
           </div>
         </div>
         <div className="flex space-x-3">
           <Button asChild>
-            <Link to="/cases/new">{t.dashboard.newCase}</Link>
+            <Link to="/cases/new">Yeni Dava</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/clients/new">{t.dashboard.newClient}</Link>
+            <Link to="/clients/new">Yeni Müvekkil</Link>
           </Button>
         </div>
       </div>
@@ -149,14 +142,14 @@ const { t, language } = useLanguage()
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">{t.dashboard.totalCases}</CardTitle>
+            <CardTitle className="text-sm font-medium">Toplam Dava</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {data.total_cases}
               {data.total_cases === 0 && (
-                 <p className="text-xs text-muted-foreground mt-1">{t.dashboard.noCasesYet}</p>
+                <p className="text-xs text-muted-foreground mt-1">Henüz dava eklenmemiş</p>
               )}
             </div>
           </CardContent>
@@ -164,14 +157,14 @@ const { t, language } = useLanguage()
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t.dashboard.totalExecutions}</CardTitle>
+            <CardTitle className="text-sm font-medium">Toplam İcra Takipleri</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {data.total_executions}
               {data.total_executions === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{t.dashboard.noExecutionsYet}</p>
+                <p className="text-xs text-muted-foreground mt-1">Henüz icra eklenmemiş</p>
               )}
             </div>
           </CardContent>
@@ -179,14 +172,14 @@ const { t, language } = useLanguage()
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">{t.dashboard.totalCompensationLetters}</CardTitle>
+            <CardTitle className="text-sm font-medium">Toplam Teminat Mektupları</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {data.total_compensation_letters}
               {data.total_compensation_letters === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{t.dashboard.noCompensationLettersYet}</p>
+                <p className="text-xs text-muted-foreground mt-1">Henüz teminat mektubu eklenmemiş</p>
               )}
             </div>
           </CardContent>
@@ -194,14 +187,14 @@ const { t, language } = useLanguage()
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">{t.dashboard.totalClients}</CardTitle>
+            <CardTitle className="text-sm font-medium">Toplam Müvekkil</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {data.total_clients}
               {data.total_clients === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{t.dashboard.noClientsYet}</p>
+                <p className="text-xs text-muted-foreground mt-1">Henüz müvekkil eklenmemiş</p>
               )}
             </div>
           </CardContent>
@@ -213,8 +206,8 @@ const { t, language } = useLanguage()
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>{t.dashboard.reminders}</CardTitle>
-                <CardDescription>{t.dashboard.todayReminders}</CardDescription>
+                <CardTitle>Hatırlatmalar</CardTitle>
+                <CardDescription>Bugün için hatırlatmalar</CardDescription>
               </div>
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4 text-gray-500" />
@@ -224,28 +217,28 @@ const { t, language } = useLanguage()
                     size="sm"
                     onClick={() => setReminderFilter('all')}
                   >
-                    {t.common.all}
+                    Tümü
                   </Button>
                   <Button
                     variant={reminderFilter === 'case' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setReminderFilter('case')}
                   >
-                    {t.dashboard.caseFiles}
+                    Dava Dosyaları
                   </Button>
                   <Button
                     variant={reminderFilter === 'execution' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setReminderFilter('execution')}
                   >
-                    {t.dashboard.executionFiles}
+                    İcra Takipleri
                   </Button>
                   <Button
                     variant={reminderFilter === 'compensation_letter' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setReminderFilter('compensation_letter')}
                   >
-                    {t.dashboard.compensationLettersFilter}
+                    Teminat Mektupları
                   </Button>
                 </div>
               </div>
@@ -270,34 +263,34 @@ const { t, language } = useLanguage()
                   <div className="flex-1">
                     {reminder.type === 'case' ? (
                       <>
-                        <p className="text-sm font-medium text-blue-600">{t.dashboard.fileNo}: {reminder.case_number}</p>
+                        <p className="text-sm font-medium text-blue-600">Dosya No: {reminder.case_number}</p>
                         {reminder.case_name && (
-                          <p className="text-xs text-gray-700 font-medium">{t.dashboard.caseName}: {reminder.case_name}</p>
+                          <p className="text-xs text-gray-700 font-medium">Dava Adı: {reminder.case_name}</p>
                         )}
-                        <p className="text-xs text-gray-700 font-medium">{t.dashboard.court}: {reminder.court}</p>
-                        <p className="text-xs text-gray-600">{t.dashboard.client}: {reminder.client_name}</p>
-                        <p className="text-xs text-gray-600">{t.dashboard.defendant}: {reminder.defendant}</p>
+                        <p className="text-xs text-gray-700 font-medium">Mahkeme: {reminder.court}</p>
+                        <p className="text-xs text-gray-600">Müvekkil: {reminder.client_name}</p>
+                        <p className="text-xs text-gray-600">Karşı Taraf: {reminder.defendant}</p>
                         {reminder.description && (
-                           <p className="text-xs text-gray-500 mt-1">{t.dashboard.reminder}: {reminder.description}</p>
+                          <p className="text-xs text-gray-500 mt-1">Hatırlatma: {reminder.description}</p>
                         )}
                       </>
                     ) : reminder.type === 'execution' ? (
                       <>
-                         <p className="text-sm font-medium text-blue-600">{t.dashboard.executionFileNo}: {reminder.execution_number}</p>
-                        <p className="text-xs text-gray-700 font-medium">{t.dashboard.execution}: {reminder.execution_office}</p>
-                        <p className="text-xs text-gray-600">{t.dashboard.defendant}: {reminder.defendant}</p>
+                        <p className="text-sm font-medium text-blue-600">İcra Dosya No: {reminder.execution_number}</p>
+                        <p className="text-xs text-gray-700 font-medium">İcra: {reminder.execution_office}</p>
+                        <p className="text-xs text-gray-600">Karşı Taraf: {reminder.defendant}</p>
                         {reminder.reminder_text && (
-                          <p className="text-xs text-gray-500 mt-1">{t.dashboard.reminderText}: {reminder.reminder_text}</p>
+                          <p className="text-xs text-gray-500 mt-1">Hatırlatma Metni: {reminder.reminder_text}</p>
                         )}
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium text-blue-600">{t.dashboard.court}: {reminder.court}</p>
-                        <p className="text-xs text-gray-700 font-medium">{t.dashboard.fileNo}: {reminder.case_number}</p>
-                        <p className="text-xs text-gray-700 font-medium">{t.dashboard.customer}: {reminder.customer}</p>
-                        <p className="text-xs text-gray-700 font-medium">{t.dashboard.letterNo}: {reminder.letter_number}</p>
+                        <p className="text-sm font-medium text-blue-600">Mahkeme: {reminder.court}</p>
+                        <p className="text-xs text-gray-700 font-medium">Dosya No: {reminder.case_number}</p>
+                        <p className="text-xs text-gray-700 font-medium">Müşteri: {reminder.customer}</p>
+                        <p className="text-xs text-gray-700 font-medium">Mektup No: {reminder.letter_number}</p>
                         {reminder.reminder_text && (
-                          <p className="text-xs text-gray-500 mt-1">{t.dashboard.reminder}: {reminder.reminder_text}</p>
+                          <p className="text-xs text-gray-500 mt-1">Hatırlatma: {reminder.reminder_text}</p>
                         )}
                       </>
                     )}
@@ -305,16 +298,16 @@ const { t, language } = useLanguage()
                   <div className="text-right">
                     {reminder.görevlendiren && (
                       <p className="text-sm font-medium text-blue-600 mb-1">
-                       {t.dashboard.assignedBy}: {reminder.görevlendiren}
+                        Görevlendiren: {reminder.görevlendiren}
                       </p>
                     )}
                     {reminder.responsible_person && (
                       <p className="text-sm font-medium text-red-600 mb-1">
-                         {t.dashboard.responsiblePerson}: {reminder.responsible_person}
+                        İlgili/Sorumlu: {reminder.responsible_person}
                       </p>
                     )}
                     <p className="text-sm font-medium text-red-600">
-                       {new Date(reminder.reminder_date).toLocaleDateString(getDateLocale())}
+                      {new Date(reminder.reminder_date).toLocaleDateString('tr-TR')}
                     </p>
                   </div>
                 </div>
@@ -323,12 +316,12 @@ const { t, language } = useLanguage()
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-500 mb-2">
                     {reminderFilter === 'all' 
-                       ? t.dashboard.noRemindersToday
-                      : t.dashboard.noRemindersForFilter
+                      ? 'Bugün için hatırlatma bulunmuyor.' 
+                      : `${reminderFilter === 'case' ? 'Dava Dosyaları' : reminderFilter === 'execution' ? 'İcra Takipleri' : 'Teminat Mektupları'} için bugün hatırlatma bulunmuyor.`
                     }
                   </p>
                   {data.total_cases === 0 && data.total_clients === 0 && (
-                    <p className="text-xs text-gray-400">{t.dashboard.startByAddingCasesAndClients}</p>
+                    <p className="text-xs text-gray-400">Dava ve müvekkil ekleyerek başlayın.</p>
                   )}
                 </div>
               )}

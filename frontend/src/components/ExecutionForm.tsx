@@ -13,14 +13,12 @@ import { api, Client, ExecutionCreate, ExecutionUpdate } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { useFormAutosave } from '@/hooks/use-form-autosave'
 import { cn } from '@/lib/utils'
-import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function ExecutionForm() {
   const navigate = useNavigate()
   const { id } = useParams()
   const isEdit = !!id
   const { toast } = useToast()
-  const { t } = useLanguage()
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -122,7 +120,7 @@ export default function ExecutionForm() {
           }, backoffDelay)
           return
         } else {
-          setClientsError(t.executions.clientsTimeoutError)
+          setClientsError("Müvekkiller yüklenirken zaman aşımı oluştu. Lütfen sayfayı yenileyin.")
         }
       } else {
         const clientsData = result as Client[]
@@ -166,7 +164,7 @@ export default function ExecutionForm() {
         return
       }
       
-      setClientsError(t.executions.clientsLoadError)
+      setClientsError("Müvekkiller yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.")
       setClientsLoading(false)
       toast({
         title: t.common.error,
@@ -212,8 +210,8 @@ export default function ExecutionForm() {
       setCurrentVersion(executionData.version)
     } catch (error) {
       toast({
-        title: t.common.error,
-        description: t.executions.executionLoadError,
+        title: "Hata",
+        description: "İcra bilgileri yüklenirken bir hata oluştu.",
         variant: "destructive",
       })
       navigate('/executions')
@@ -225,8 +223,8 @@ export default function ExecutionForm() {
     
     if (clientsLoading) {
       toast({
-        title: t.common.warning,
-        description: t.executions.pleaseWaitClientsLoading,
+        title: "Uyarı",
+        description: "Müvekkiller yüklenirken lütfen bekleyin.",
         variant: "destructive",
       })
       return
@@ -234,8 +232,8 @@ export default function ExecutionForm() {
 
     if (!formData.client_id) {
       toast({
-         title: t.common.error,
-        description: t.executions.pleaseSelectClient,
+        title: "Hata",
+        description: "Lütfen bir müvekkil seçiniz.",
         variant: "destructive",
       })
       return
@@ -243,8 +241,8 @@ export default function ExecutionForm() {
     
     if (!clients.find(c => c.id === formData.client_id)) {
       toast({
-        title: t.common.error,
-        description: t.executions.selectedClientInvalid,
+        title: "Hata",
+        description: "Seçilen müvekkil geçerli değil. Lütfen listeden bir müvekkil seçiniz.",
         variant: "destructive",
       })
       return
@@ -280,8 +278,8 @@ export default function ExecutionForm() {
         }
         await api.executions.update(id, updateData)
         toast({
-           title: t.common.success,
-          description: t.executions.executionUpdated,
+          title: "Başarılı",
+          description: "İcra başarıyla güncellendi.",
         })
       } else {
         const createData: ExecutionCreate = {
@@ -292,8 +290,8 @@ export default function ExecutionForm() {
         }
         await api.executions.create(createData)
         toast({
-          title: t.common.success,
-          description: t.executions.executionCreated,
+          title: "Başarılı",
+          description: "İcra başarıyla oluşturuldu.",
         })
         clearDraft()
       }
@@ -302,17 +300,17 @@ export default function ExecutionForm() {
       console.error('Submission error:', error)
       if (error.status === 409) {
         toast({
-          title: t.executions.conflictError,
-          description: t.executions.conflictErrorDescription,
+          title: "Çakışma Hatası",
+          description: "Bu kayıt başka bir kullanıcı tarafından değiştirilmiş. Lütfen sayfayı yenileyin ve tekrar deneyin.",
           variant: "destructive",
         })
         if (isEdit && id) {
           loadExecution(id)
         }
       } else {
-        const errorMessage = error.message || (isEdit ? t.executions.executionUpdateError : t.executions.executionCreateError)
+        const errorMessage = error.message || (isEdit ? "İcra güncellenirken bir hata oluştu." : "İcra oluşturulurken bir hata oluştu.")
         toast({
-           title: t.common.error,
+          title: "Hata",
           description: errorMessage,
           variant: "destructive",
         })
@@ -331,25 +329,25 @@ export default function ExecutionForm() {
       <div className="flex items-center space-x-4">
         <Button variant="outline" onClick={() => navigate('/executions')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {t.common.back}
+          Geri
         </Button>
         <h1 className="text-3xl font-bold text-gray-900">
-          {isEdit ? t.executions.editExecution : t.executions.newExecution}
+          {isEdit ? 'İcra Düzenle' : 'Yeni İcra'}
         </h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{isEdit ? t.executions.editExecutionInfo : t.executions.createNewExecution}</CardTitle>
+          <CardTitle>{isEdit ? 'İcra Bilgilerini Düzenle' : 'Yeni İcra Oluştur'}</CardTitle>
           <CardDescription>
-           {isEdit ? t.executions.updateExistingExecutionInfo : t.executions.createNewExecutionRecord}
+            {isEdit ? 'Mevcut icra bilgilerini güncelleyin.' : 'Yeni bir icra kaydı oluşturun.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="client_id">{t.executions.client} *</Label>
+                <Label htmlFor="client_id">Müvekkil *</Label>
                 <Select 
                   key={`client-select-${clientsLoading}-${clients.length}-${!!clientsError}`}
                   value={formData.client_id} 
@@ -358,10 +356,10 @@ export default function ExecutionForm() {
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={
-                      clientsLoading ? t.executions.clientsLoading :
-                      clientsError ? t.common.errorOccurred :
-                      clients.length === 0 ? t.executions.noClientsFound :
-                      t.executions.selectClient
+                      clientsLoading ? "Müvekkiller yükleniyor..." :
+                      clientsError ? "Hata oluştu" :
+                      clients.length === 0 ? "Müvekkil bulunamadı" :
+                      "Müvekkil seçin"
                     } />
                   </SelectTrigger>
                   <SelectContent>
@@ -374,18 +372,18 @@ export default function ExecutionForm() {
                           onClick={() => loadClients()}
                           disabled={clientsLoading}
                         >
-                          {t.common.retry}
+                          Tekrar Dene
                         </Button>
                       </div>
                     ) : clients.length === 0 && !clientsLoading ? (
                       <div className="p-4 text-center">
-                        <p className="text-sm text-gray-600 mb-2">{t.executions.noClientsAddedYet}</p>
+                        <p className="text-sm text-gray-600 mb-2">Henüz müvekkil eklenmemiş</p>
                         <Button 
                           size="sm" 
                           variant="outline" 
                           onClick={() => navigate('/clients/new')}
                         >
-                          {t.executions.addClient}
+                          Müvekkil Ekle
                         </Button>
                       </div>
                     ) : (
@@ -400,19 +398,19 @@ export default function ExecutionForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="defendant">{t.executions.defendant} *</Label>
+                <Label htmlFor="defendant">Karşı Taraf *</Label>
                 <Input
                   id="defendant"
                   name="defendant"
                   value={formData.defendant}
                   onChange={(e) => handleChange('defendant', e.target.value)}
-                  placeholder={t.executions.enterDefendantName}
+                  placeholder="Karşı taraf adını girin"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="execution_office">{t.executions.executionOffice} *</Label>
+                <Label htmlFor="execution_office">İcra *</Label>
                 <Popover open={executionOfficeOpen} onOpenChange={setExecutionOfficeOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -421,19 +419,19 @@ export default function ExecutionForm() {
                       aria-expanded={executionOfficeOpen}
                       className="w-full justify-between"
                     >
-                      {formData.execution_office || t.executions.selectOrTypeExecutionOffice}
+                      {formData.execution_office || "İcra dairesi seçin veya yazın..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
                       <CommandInput 
-                        placeholder={t.executions.searchOrTypeExecutionOffice}
+                        placeholder="İcra dairesi ara veya yaz..." 
                         value={formData.execution_office}
                         onValueChange={(value) => handleChange('execution_office', value)}
                       />
                       <CommandList>
-                        <CommandEmpty>{t.common.noResultsFound}</CommandEmpty>
+                        <CommandEmpty>Sonuç bulunamadı.</CommandEmpty>
                         <CommandGroup>
                           {[
                             "ADANA 1.GENEL İCRA",
@@ -469,64 +467,64 @@ export default function ExecutionForm() {
               </div>
 
               <div className="space-y-2">
-                 <Label htmlFor="execution_number">{t.executions.executionFileNo} *</Label>
+                <Label htmlFor="execution_number">İcra Dosya No *</Label>
                 <Input
                   id="execution_number"
                   name="execution_number"
                   value={formData.execution_number}
                   onChange={(e) => handleChange('execution_number', e.target.value)}
-                   placeholder={t.executions.enterExecutionNumber}
+                  placeholder="İcra numarasını girin"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status">{t.executions.status} *</Label>
+                <Label htmlFor="status">Durum *</Label>
                 <Select value={formData.status} onValueChange={(value) => handleChange('status', value)} name="status">
                   <SelectTrigger>
-                    <SelectValue placeholder={t.executions.selectStatus} />
+                    <SelectValue placeholder="Durum seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Derdest">{t.executionStatuses.pending}</SelectItem>
-                    <SelectItem value="İnfaz">{t.executionStatuses.enforcement}</SelectItem>
-                    <SelectItem value="Haricen Tahsil">{t.executionStatuses.externalCollection}</SelectItem>
-                    <SelectItem value="İtirazlı">{t.executionStatuses.objected}</SelectItem>
-                    <SelectItem value="İcranın Geri Bırakılması">{t.executionStatuses.executionPostponed}</SelectItem>
-                    <SelectItem value="Davalı">{t.executionStatuses.sued}</SelectItem>
-                    <SelectItem value="Ödeme Sözü">{t.executionStatuses.paymentPromise}</SelectItem>
-                    <SelectItem value="Bilirkişi">{t.executionStatuses.expert}</SelectItem>
+                    <SelectItem value="Derdest">Derdest</SelectItem>
+                    <SelectItem value="İnfaz">İnfaz</SelectItem>
+                    <SelectItem value="Haricen Tahsil">Haricen Tahsil</SelectItem>
+                    <SelectItem value="İtirazlı">İtirazlı</SelectItem>
+                    <SelectItem value="İcranın Geri Bırakılması">İcranın Geri Bırakılması</SelectItem>
+                    <SelectItem value="Davalı">Davalı</SelectItem>
+                    <SelectItem value="Ödeme Sözü">Ödeme Sözü</SelectItem>
+                    <SelectItem value="Bilirkişi">Bilirkişi</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="execution_type">{t.executions.executionTypeFilter} *</Label>
+                <Label htmlFor="execution_type">İcra Türü *</Label>
                 <Select value={formData.execution_type} onValueChange={(value) => handleChange('execution_type', value)} name="execution_type">
                   <SelectTrigger>
-                     <SelectValue placeholder={t.executions.selectExecutionType} />
+                    <SelectValue placeholder="İcra türü seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="İlamsız Kredi Kartı">{t.executionTypes.creditCardNoJudgment}</SelectItem>
-                    <SelectItem value="İlamsız İhtiyaç Kartı">{t.executionTypes.consumerLoanNoJudgment}</SelectItem>
-                    <SelectItem value="İlamsız GKS">{t.executionTypes.gksNoJudgment}</SelectItem>
-                    <SelectItem value="Kambiyo / Bono">{t.executionTypes.billOfExchange}</SelectItem>
-                    <SelectItem value="Kambiyo / Çek">{t.executionTypes.check}</SelectItem>
-                    <SelectItem value="İlamsız / Çek">{t.executionTypes.checkNoJudgment}</SelectItem>
-                    <SelectItem value="Rehin – Örnek 8">{t.executionTypes.pledgeSample8}</SelectItem>
-                    <SelectItem value="İpotek – Örnek 6">{t.executionTypes.mortgageSample6}</SelectItem>
-                    <SelectItem value="İpotek – Örnek 9">{t.executionTypes.mortgageSample9}</SelectItem>
-                    <SelectItem value="Örnek 4-5">{t.executionTypes.sample45}</SelectItem>
-                    <SelectItem value="İlamsız Fatura">{t.executionTypes.invoiceNoJudgment}</SelectItem>
-                    <SelectItem value="Nafaka – Örnek 49">{t.executionTypes.alimonySample49}</SelectItem>
-                    <SelectItem value="İhtiyat-İ Tedbir">{t.executionTypes.precautionaryMeasure}</SelectItem>
-                    <SelectItem value="Adi Kira ve Hasılat Kirası – Örnek 13">{t.executionTypes.ordinaryRentSample13}</SelectItem>
-                    <SelectItem value="Tahliye – Örnek 14">{t.executionTypes.evictionSample14}</SelectItem>
+                    <SelectItem value="İlamsız Kredi Kartı">İlamsız Kredi Kartı</SelectItem>
+                    <SelectItem value="İlamsız İhtiyaç Kartı">İlamsız İhtiyaç Kartı</SelectItem>
+                    <SelectItem value="İlamsız GKS">İlamsız GKS</SelectItem>
+                    <SelectItem value="Kambiyo / Bono">Kambiyo / Bono</SelectItem>
+                    <SelectItem value="Kambiyo / Çek">Kambiyo / Çek</SelectItem>
+                    <SelectItem value="İlamsız / Çek">İlamsız / Çek</SelectItem>
+                    <SelectItem value="Rehin – Örnek 8">Rehin – Örnek 8</SelectItem>
+                    <SelectItem value="İpotek – Örnek 6">İpotek – Örnek 6</SelectItem>
+                    <SelectItem value="İpotek – Örnek 9">İpotek – Örnek 9</SelectItem>
+                    <SelectItem value="Örnek 4-5">Örnek 4-5</SelectItem>
+                    <SelectItem value="İlamsız Fatura">İlamsız Fatura</SelectItem>
+                    <SelectItem value="Nafaka – Örnek 49">Nafaka – Örnek 49</SelectItem>
+                    <SelectItem value="İhtiyat-İ Tedbir">İhtiyat-İ Tedbir</SelectItem>
+                    <SelectItem value="Adi Kira ve Hasılat Kirası – Örnek 13">Adi Kira ve Hasılat Kirası – Örnek 13</SelectItem>
+                    <SelectItem value="Tahliye – Örnek 14">Tahliye – Örnek 14</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                 <Label htmlFor="start_date">{t.executions.startDate} *</Label>
+                <Label htmlFor="start_date">Açılış Tarihi *</Label>
                 <Input
                   id="start_date"
                   name="start_date"
@@ -538,18 +536,18 @@ export default function ExecutionForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="office_archive_no">{t.executions.officeArchiveNo}</Label>
+                <Label htmlFor="office_archive_no">Ofis Arşiv No</Label>
                 <Input
                   id="office_archive_no"
                   name="office_archive_no"
                   value={formData.office_archive_no}
                   onChange={(e) => handleChange('office_archive_no', e.target.value)}
-                  placeholder={t.executions.enterOfficeArchiveNo}
+                  placeholder="Ofis arşiv numarasını girin"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reminder_date">{t.executions.reminderDate}</Label>
+                <Label htmlFor="reminder_date">Hatırlatma Tarihi</Label>
                 <Input
                   id="reminder_date"
                   name="reminder_date"
@@ -560,91 +558,91 @@ export default function ExecutionForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="haciz_durumu">{t.executions.seizureStatus}</Label>
+                <Label htmlFor="haciz_durumu">Haciz Durumu</Label>
                 <Select value={formData.haciz_durumu} onValueChange={(value) => handleChange('haciz_durumu', value)} name="haciz_durumu">
                   <SelectTrigger>
-                    <SelectValue placeholder={t.executions.selectSeizureStatus} />
+                    <SelectValue placeholder="Haciz durumu seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="Hacizli Araç">{t.seizureStatuses.seizedVehicle}</SelectItem>
-                    <SelectItem value="Rehinli Araç">{t.seizureStatuses.pledgedVehicle}</SelectItem>
-                    <SelectItem value="Yakalamalı / Şatış">{t.seizureStatuses.wantedForSale}</SelectItem>
-                    <SelectItem value="İpotekli / Gayrimenkul">{t.seizureStatuses.mortgagedRealEstate}</SelectItem>
-                    <SelectItem value="Hacizli / Gayrimenkul">{t.seizureStatuses.seizedRealEstate}</SelectItem>
+                    <SelectItem value="Hacizli Araç">Hacizli Araç</SelectItem>
+                    <SelectItem value="Rehinli Araç">Rehinli Araç</SelectItem>
+                    <SelectItem value="Yakalamalı / Şatış">Yakalamalı / Şatış</SelectItem>
+                    <SelectItem value="İpotekli / Gayrimenkul">İpotekli / Gayrimenkul</SelectItem>
+                    <SelectItem value="Hacizli / Gayrimenkul">Hacizli / Gayrimenkul</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="görevlendiren">{t.executions.assignedByFilter}</Label>
+              <Label htmlFor="görevlendiren">Görevlendiren</Label>
               <Select value={formData.görevlendiren} onValueChange={(value) => handleChange('görevlendiren', value)} name="görevlendiren">
                 <SelectTrigger>
-                  <SelectValue placeholder={t.executions.selectAssignedBy} />
+                  <SelectValue placeholder="Görevlendiren seçin" />
                 </SelectTrigger>
                 <SelectContent>
-                   <SelectItem value="Av.M.Şerif Bey">{t.responsiblePersons.avMSerifBey}</SelectItem>
-                  <SelectItem value="Ömer Bey">{t.responsiblePersons.omerBey}</SelectItem>
-                  <SelectItem value="Av.İbrahim Bey">{t.responsiblePersons.avIbrahimBey}</SelectItem>
-                  <SelectItem value="Av.Kenan Bey">{t.responsiblePersons.avKenanBey}</SelectItem>
-                  <SelectItem value="İsmail Bey">{t.responsiblePersons.ismailBey}</SelectItem>
-                  <SelectItem value="Ebru Hanım">{t.responsiblePersons.ebruHanim}</SelectItem>
-                  <SelectItem value="Pınar Hanım">{t.responsiblePersons.pinarHanim}</SelectItem>
-                  <SelectItem value="Yaren Hanım">{t.responsiblePersons.yarenHanim}</SelectItem>
+                  <SelectItem value="Av.M.Şerif Bey">Av.M.Şerif Bey</SelectItem>
+                  <SelectItem value="Ömer Bey">Ömer Bey</SelectItem>
+                  <SelectItem value="Av.İbrahim Bey">Av.İbrahim Bey</SelectItem>
+                  <SelectItem value="Av.Kenan Bey">Av.Kenan Bey</SelectItem>
+                  <SelectItem value="İsmail Bey">İsmail Bey</SelectItem>
+                  <SelectItem value="Ebru Hanım">Ebru Hanım</SelectItem>
+                  <SelectItem value="Pınar Hanım">Pınar Hanım</SelectItem>
+                  <SelectItem value="Yaren Hanım">Yaren Hanım</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="responsible_person">{t.executions.responsiblePersonFilter}</Label>
+              <Label htmlFor="responsible_person">İlgili/Sorumlu</Label>
               <Select value={formData.responsible_person} onValueChange={(value) => handleChange('responsible_person', value)} name="responsible_person">
                 <SelectTrigger>
-                  <SelectValue placeholder={t.executions.selectResponsiblePerson} />
+                  <SelectValue placeholder="İlgili/Sorumlu seçin" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Av.M.Şerif Bey">{t.responsiblePersons.avMSerifBey}</SelectItem>
-                  <SelectItem value="Ömer Bey">{t.responsiblePersons.omerBey}</SelectItem>
-                  <SelectItem value="Av.İbrahim Bey">{t.responsiblePersons.avIbrahimBey}</SelectItem>
-                  <SelectItem value="Av.Kenan Bey">{t.responsiblePersons.avKenanBey}</SelectItem>
-                  <SelectItem value="İsmail Bey">{t.responsiblePersons.ismailBey}</SelectItem>
-                  <SelectItem value="Ebru Hanım">{t.responsiblePersons.ebruHanim}</SelectItem>
-                  <SelectItem value="Pınar Hanım">{t.responsiblePersons.pinarHanim}</SelectItem>
-                  <SelectItem value="Yaren Hanım">{t.responsiblePersons.yarenHanim}</SelectItem>
+                  <SelectItem value="Av.M.Şerif Bey">Av.M.Şerif Bey</SelectItem>
+                  <SelectItem value="Ömer Bey">Ömer Bey</SelectItem>
+                  <SelectItem value="Av.İbrahim Bey">Av.İbrahim Bey</SelectItem>
+                  <SelectItem value="Av.Kenan Bey">Av.Kenan Bey</SelectItem>
+                  <SelectItem value="İsmail Bey">İsmail Bey</SelectItem>
+                  <SelectItem value="Ebru Hanım">Ebru Hanım</SelectItem>
+                  <SelectItem value="Pınar Hanım">Pınar Hanım</SelectItem>
+                  <SelectItem value="Yaren Hanım">Yaren Hanım</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reminder_text">{t.executions.reminderText}</Label>
+              <Label htmlFor="reminder_text">Hatırlatma Metni</Label>
               <Textarea
                 id="reminder_text"
                 name="reminder_text"
                 value={formData.reminder_text}
                 onChange={(e) => handleChange('reminder_text', e.target.value)}
-                placeholder={t.executions.enterReminderText}
+                placeholder="Hatırlatma metni girin"
                 rows={4}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">{t.executions.privateNotes}</Label>
+              <Label htmlFor="notes">Özel Notlar</Label>
               <Textarea
                 id="notes"
                 name="notes"
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
-                placeholder={t.executions.enterPrivateNotes}
+                placeholder="İcra ile ilgili özel notlarınızı buraya yazabilirsiniz"
                 rows={3}
               />
             </div>
 
             <div className="flex justify-end space-x-4">
               <Button type="button" variant="outline" onClick={() => navigate('/executions')}>
-                {t.common.cancel}
+                İptal
               </Button>
               <Button type="submit" disabled={loading || clientsLoading || !formData.client_id}>
                 <Save className="h-4 w-4 mr-2" />
-                {loading ? t.common.saving : clientsLoading ? `${t.executions.clientsLoading}${retryCount > 0 ? ` (${retryCount}/3)` : ''}` : (isEdit ? t.common.update : t.common.create)}
+                {loading ? 'Kaydediliyor...' : clientsLoading ? `Müvekkiller yükleniyor${retryCount > 0 ? ` (${retryCount}/3)` : ''}...` : (isEdit ? 'Güncelle' : 'Oluştur')}
               </Button>
             </div>
           </form>

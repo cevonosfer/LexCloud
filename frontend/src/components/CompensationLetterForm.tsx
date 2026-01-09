@@ -8,13 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { api, CompensationLetterCreate, CompensationLetterUpdate } from '@/lib/api'
-import { useLanguage } from '@/contexts/LanguageContext'
+
 export default function CompensationLetterForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
   const isEdit = Boolean(id)
-  const { t } = useLanguage()
+
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     client_id: '',
@@ -116,7 +116,7 @@ export default function CompensationLetterForm() {
         return
       }
       
-      setClientsError(t.compensationLetters.clientsLoadError)
+      setClientsError("Müvekkiller yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.")
       setClientsLoading(false)
       toast({
         title: t.common.error,
@@ -169,8 +169,8 @@ export default function CompensationLetterForm() {
       setCurrentVersion(letter.version)
     } catch (error) {
       toast({
-        title: t.common.error,
-        description: t.compensationLetters.letterLoadError,
+        title: "Hata",
+        description: "Teminat mektubu yüklenirken bir hata oluştu.",
         variant: "destructive",
       })
       navigate('/compensation-letters')
@@ -201,8 +201,8 @@ export default function CompensationLetterForm() {
         }
         await api.compensationLetters.update(id, updateData)
         toast({
-          title: t.common.success,
-          description: t.compensationLetters.letterUpdated,
+          title: "Başarılı",
+          description: "Teminat mektubu başarıyla güncellendi.",
         })
       } else {
         const createData: CompensationLetterCreate = {
@@ -222,16 +222,16 @@ export default function CompensationLetterForm() {
         }
         await api.compensationLetters.create(createData)
         toast({
-          title: t.common.success,
-          description: t.compensationLetters.letterCreated,
+          title: "Başarılı",
+          description: "Teminat mektubu başarıyla oluşturuldu.",
         })
       }
       navigate('/compensation-letters')
     } catch (error: any) {
       if (error.status === 409) {
         toast({
-          title: t.compensationLetters.conflictError,
-          description: t.compensationLetters.conflictErrorDescription,
+          title: "Çakışma Hatası",
+          description: "Bu kayıt başka bir kullanıcı tarafından değiştirilmiş. Lütfen sayfayı yenileyin ve tekrar deneyin.",
           variant: "destructive",
         })
         if (isEdit && id) {
@@ -239,8 +239,8 @@ export default function CompensationLetterForm() {
         }
       } else {
         toast({
-          ttitle: t.common.error,
-          description: isEdit ? t.compensationLetters.letterUpdateError : t.compensationLetters.letterCreateError,
+          title: "Hata",
+          description: isEdit ? "Teminat mektubu güncellenirken bir hata oluştu." : "Teminat mektubu oluşturulurken bir hata oluştu.",
           variant: "destructive",
         })
       }
@@ -254,10 +254,10 @@ export default function CompensationLetterForm() {
       <div className="flex items-center space-x-4">
         <Button variant="outline" onClick={() => navigate('/compensation-letters')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {t.common.back}
+          Geri
         </Button>
         <h1 className="text-3xl font-bold text-gray-900">
-           {isEdit ? t.compensationLetters.editLetter : t.compensationLetters.newLetter}
+          {isEdit ? 'Teminat Mektubu Düzenle' : 'Yeni Teminat Mektubu'}
         </h1>
       </div>
 
@@ -269,7 +269,7 @@ export default function CompensationLetterForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="client_id">{t.compensationLetters.client} *</Label>
+                <Label htmlFor="client_id">Müvekkil *</Label>
                 <Select
                   key={`client-select-${clientsLoading}-${clients.length}-${!!clientsError}`}
                   value={formData.client_id}
@@ -278,10 +278,10 @@ export default function CompensationLetterForm() {
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={
-                      clientsLoading ? t.compensationLetters.clientsLoading :
-                      clientsError ? t.common.errorOccurred :
-                      clients.length === 0 ? t.compensationLetters.noClientsFound :
-                      t.compensationLetters.selectClient
+                      clientsLoading ? "Müvekkiller yükleniyor..." :
+                      clientsError ? "Hata oluştu" :
+                      clients.length === 0 ? "Müvekkil bulunamadı" :
+                      "Müvekkil seçin"
                     } />
                   </SelectTrigger>
                   <SelectContent>
@@ -294,18 +294,18 @@ export default function CompensationLetterForm() {
                           onClick={() => loadClients()}
                           disabled={clientsLoading}
                         >
-                           {t.common.retry}
+                          Tekrar Dene
                         </Button>
                       </div>
                     ) : clients.length === 0 && !clientsLoading ? (
                       <div className="p-4 text-center">
-                        <p className="text-sm text-gray-600 mb-2">{t.compensationLetters.noClientsAddedYet}</p>
+                        <p className="text-sm text-gray-600 mb-2">Henüz müvekkil eklenmemiş</p>
                         <Button 
                           size="sm" 
                           variant="outline" 
                           onClick={() => navigate('/clients/new')}
                         >
-                         {t.compensationLetters.addClient}
+                          Müvekkil Ekle
                         </Button>
                       </div>
                     ) : (
@@ -320,7 +320,7 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="letter_number">{t.compensationLetters.letterNumber} *</Label>
+                <Label htmlFor="letter_number">Mektup No *</Label>
                 <Input
                   id="letter_number"
                   value={formData.letter_number}
@@ -330,14 +330,14 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                 <Label htmlFor="bank">{t.compensationLetters.bank} *</Label>
+                <Label htmlFor="bank">Banka *</Label>
                 <Select
                   value={formData.bank}
                   onValueChange={(value) => setFormData({ ...formData, bank: value })}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t.compensationLetters.selectBank} />
+                    <SelectValue placeholder="Banka seçin" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="TÜRKİYE VAKIFLAR BANKASI T.A.O.">TÜRKİYE VAKIFLAR BANKASI T.A.O.</SelectItem>
@@ -348,7 +348,7 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="customer_number">{t.compensationLetters.customerNumber} *</Label>
+                <Label htmlFor="customer_number">Müşteri No *</Label>
                 <Input
                   id="customer_number"
                   value={formData.customer_number}
@@ -358,7 +358,7 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                 <Label htmlFor="customer">{t.compensationLetters.customer} *</Label>
+                <Label htmlFor="customer">Müşteri *</Label>
                 <Input
                   id="customer"
                   value={formData.customer}
@@ -368,7 +368,7 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-               <Label htmlFor="court">{t.compensationLetters.court} *</Label>
+                <Label htmlFor="court">Mahkeme *</Label>
                 <Input
                   id="court"
                   value={formData.court}
@@ -378,7 +378,7 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="case_number">{t.compensationLetters.fileNo} *</Label>
+                <Label htmlFor="case_number">Dosya No *</Label>
                 <Input
                   id="case_number"
                   value={formData.case_number}
@@ -388,7 +388,7 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reminder_date">{t.compensationLetters.reminderDate}</Label>
+                <Label htmlFor="reminder_date">Hatırlatma Tarihi</Label>
                 <Input
                   id="reminder_date"
                   type="date"
@@ -401,92 +401,90 @@ export default function CompensationLetterForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="görevlendiren">{t.compensationLetters.assignedBy}</Label>
+                <Label htmlFor="görevlendiren">Görevlendiren</Label>
                 <Select value={formData.görevlendiren} onValueChange={(value) => setFormData({ ...formData, görevlendiren: value })} name="görevlendiren">
                   <SelectTrigger>
-                     <SelectValue placeholder={t.compensationLetters.selectAssignedBy} />
+                    <SelectValue placeholder="Görevlendiren seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="Av.M.Şerif Bey">{t.responsiblePersons.avMSerifBey}</SelectItem>
-                    <SelectItem value="Ömer Bey">{t.responsiblePersons.omerBey}</SelectItem>
-                    <SelectItem value="Av.İbrahim Bey">{t.responsiblePersons.avIbrahimBey}</SelectItem>
-                    <SelectItem value="Av.Kenan Bey">{t.responsiblePersons.avKenanBey}</SelectItem>
-                    <SelectItem value="İsmail Bey">{t.responsiblePersons.ismailBey}</SelectItem>
-                    <SelectItem value="Ebru Hanım">{t.responsiblePersons.ebruHanim}</SelectItem>
-                    <SelectItem value="Pınar Hanım">{t.responsiblePersons.pinarHanim}</SelectItem>
-                    <SelectItem value="Yaren Hanım">{t.responsiblePersons.yarenHanim}</SelectItem>
+                    <SelectItem value="Av.M.Şerif Bey">Av.M.Şerif Bey</SelectItem>
+                    <SelectItem value="Ömer Bey">Ömer Bey</SelectItem>
+                    <SelectItem value="Av.İbrahim Bey">Av.İbrahim Bey</SelectItem>
+                    <SelectItem value="Av.Kenan Bey">Av.Kenan Bey</SelectItem>
+                    <SelectItem value="İsmail Bey">İsmail Bey</SelectItem>
+                    <SelectItem value="Ebru Hanım">Ebru Hanım</SelectItem>
+                    <SelectItem value="Pınar Hanım">Pınar Hanım</SelectItem>
+                    <SelectItem value="Yaren Hanım">Yaren Hanım</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="responsible_person">{t.compensationLetters.responsiblePerson}</Label>
+                <Label htmlFor="responsible_person">İlgili/Sorumlu</Label>
                 <Select value={formData.responsible_person} onValueChange={(value) => setFormData({ ...formData, responsible_person: value })} name="responsible_person">
                   <SelectTrigger>
-                     <SelectValue placeholder={t.compensationLetters.selectResponsiblePerson} />
+                    <SelectValue placeholder="İlgili/Sorumlu seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Av.M.Şerif Bey">{t.responsiblePersons.avMSerifBey}</SelectItem>
-                    <SelectItem value="Ömer Bey">{t.responsiblePersons.omerBey}</SelectItem>
-                    <SelectItem value="Av.İbrahim Bey">{t.responsiblePersons.avIbrahimBey}</SelectItem>
-                    <SelectItem value="Av.Kenan Bey">{t.responsiblePersons.avKenanBey}</SelectItem>
-                    <SelectItem value="İsmail Bey">{t.responsiblePersons.ismailBey}</SelectItem>
-                    <SelectItem value="Ebru Hanım">{t.responsiblePersons.ebruHanim}</SelectItem>
-                    <SelectItem value="Pınar Hanım">{t.responsiblePersons.pinarHanim}</SelectItem>
-                    <SelectItem value="Yaren Hanım">{t.responsiblePersons.yarenHanim}</SelectItem>
-                  </SelectContent>
+                    <SelectItem value="Av.M.Şerif Bey">Av.M.Şerif Bey</SelectItem>
+                    <SelectItem value="Ömer Bey">Ömer Bey</SelectItem>
+                    <SelectItem value="Av.İbrahim Bey">Av.İbrahim Bey</SelectItem>
+                    <SelectItem value="Av.Kenan Bey">Av.Kenan Bey</SelectItem>
+                    <SelectItem value="İsmail Bey">İsmail Bey</SelectItem>
+                    <SelectItem value="Ebru Hanım">Ebru Hanım</SelectItem>
+                    <SelectItem value="Pınar Hanım">Pınar Hanım</SelectItem>
+                    <SelectItem value="Yaren Hanım">Yaren Hanım</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="status">{t.compensationLetters.status} *</Label>
+                <Label htmlFor="status">Durumu *</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value })}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t.compensationLetters.selectStatus} />
+                    <SelectValue placeholder="Durum seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                   <SelectItem value="İADE">{t.compensationLetterStatuses.iade}</SelectItem>
-                    <SelectItem value="İADE İSTENDİ">{t.compensationLetterStatuses.iadeIstendi}</SelectItem>
-                    <SelectItem value="DEVAM EDİYOR">{t.compensationLetterStatuses.devamEdiyor}</SelectItem>
+                    <SelectItem value="İADE">İADE</SelectItem>
+                    <SelectItem value="İADE İSTENDİ">İADE İSTENDİ</SelectItem>
+                    <SelectItem value="DEVAM EDİYOR">DEVAM EDİYOR</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="reminder_text">{t.compensationLetters.reminderText}</Label>
+              <Label htmlFor="reminder_text">Hatırlatma Metni</Label>
               <Input
                 id="reminder_text"
                 value={formData.reminder_text}
                 onChange={(e) => setFormData({ ...formData, reminder_text: e.target.value })}
-                 placeholder={t.compensationLetters.enterReminderText}
+                placeholder="Hatırlatma metni girin"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description_text">{t.compensationLetters.descriptionText}</Label>
+              <Label htmlFor="description_text">Açıklama Metni</Label>
               <textarea
                 id="description_text"
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={formData.description_text}
                 onChange={(e) => setFormData({ ...formData, description_text: e.target.value })}
-                 placeholder={t.compensationLetters.enterDescriptionText}
+                placeholder="Açıklama metni girin"
                 rows={3}
               />
             </div>
 
             <div className="flex justify-end space-x-4">
               <Button type="button" variant="outline" onClick={() => navigate('/compensation-letters')}>
-                 {t.common.cancel}
+                İptal
               </Button>
               <Button type="submit" disabled={loading || clientsLoading || !formData.client_id}>
-                 {loading ? t.common.saving : clientsLoading ? `${t.compensationLetters.clientsLoading}${retryCount > 0 ? ` (${retryCount}/3)` : ''}` : (isEdit ? t.common.update : t.common.create)} 
-      
+                {loading ? 'Kaydediliyor...' : clientsLoading ? `Müvekkiller yükleniyor${retryCount > 0 ? ` (${retryCount}/3)` : ''}...` : (isEdit ? 'Güncelle' : 'Oluştur')}
               </Button>
             </div>
           </form>

@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import { api, CompensationLetter } from '@/lib/api'
-import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function CompensationLetters() {
   const [letters, setLetters] = useState<CompensationLetter[]>([])
@@ -18,7 +17,7 @@ export default function CompensationLetters() {
   const [responsiblePersonFilter, setResponsiblePersonFilter] = useState<string>('')
   const [görevlendirenFilter, setGörevlendirenFilter] = useState<string>('')
   const { toast } = useToast()
-  const { t } = useLanguage()
+
   useEffect(() => {
     loadLetters()
   }, [statusFilter, responsiblePersonFilter, görevlendirenFilter])
@@ -39,8 +38,8 @@ export default function CompensationLetters() {
       setLetters(lettersData)
     } catch (error) {
       toast({
-        title: t.common.error,
-        description: t.compensationLetters.lettersLoadError,
+        title: "Hata",
+        description: "Teminat mektupları yüklenirken bir hata oluştu.",
         variant: "destructive",
       })
     } finally {
@@ -49,7 +48,7 @@ export default function CompensationLetters() {
   }
 
   const handleDelete = async (letterId: string) => {
-      if (!confirm(t.compensationLetters.confirmDelete)) {
+    if (!confirm('Bu teminat mektubunu silmek istediğinizden emin misiniz?')) {
       return
     }
 
@@ -57,13 +56,13 @@ export default function CompensationLetters() {
       await api.compensationLetters.delete(letterId)
       setLetters(letters.filter(l => l.id !== letterId))
       toast({
-        title: t.common.success,
-        description: t.compensationLetters.letterDeleted,
+        title: "Başarılı",
+        description: "Teminat mektubu başarıyla silindi.",
       })
     } catch (error) {
       toast({
-        title: t.common.error,
-        description: t.compensationLetters.letterDeleteError,
+        title: "Hata",
+        description: "Teminat mektubu silinirken bir hata oluştu.",
         variant: "destructive",
       })
     }
@@ -87,11 +86,11 @@ export default function CompensationLetters() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">{t.compensationLetters.title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Teminat Mektupları</h1>
         <Button asChild>
           <Link to="/compensation-letters/new">
             <Plus className="h-4 w-4 mr-2" />
-             {t.compensationLetters.newLetter}
+            Yeni Teminat Mektubu
           </Link>
         </Button>
       </div>
@@ -100,7 +99,7 @@ export default function CompensationLetters() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder={t.compensationLetters.searchPlaceholder}
+            placeholder="Mektup numarası, müşteri adı, banka veya mahkeme ile ara..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -109,48 +108,48 @@ export default function CompensationLetters() {
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-48">
             <Filter className="h-4 w-4 mr-2" />
-             <SelectValue placeholder={t.compensationLetters.statusFilter} />
+            <SelectValue placeholder="Durum filtrele" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t.compensationLetters.allStatuses}</SelectItem>
-            <SelectItem value="İADE">{t.compensationLetterStatuses.returned}</SelectItem>
-            <SelectItem value="İADE İSTENDİ">{t.compensationLetterStatuses.returnRequested}</SelectItem>
-            <SelectItem value="DEVAM EDİYOR">{t.compensationLetterStatuses.ongoing}</SelectItem>
+            <SelectItem value="all">Tüm Durumlar</SelectItem>
+            <SelectItem value="İADE">İADE</SelectItem>
+            <SelectItem value="İADE İSTENDİ">İADE İSTENDİ</SelectItem>
+            <SelectItem value="DEVAM EDİYOR">DEVAM EDİYOR</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex gap-2">
           <Select value={responsiblePersonFilter} onValueChange={setResponsiblePersonFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t.compensationLetters.responsiblePersonFilter} />
+              <SelectValue placeholder="İlgili/Sorumlu Filtrele" />
             </SelectTrigger>
             <SelectContent>
-                            <SelectItem value="all">{t.compensationLetters.allResponsiblePersons}</SelectItem>
-              <SelectItem value="Av.M.Şerif Bey">{t.responsiblePersons.avMSerifBey}</SelectItem>
-              <SelectItem value="Ömer Bey">{t.responsiblePersons.omerBey}</SelectItem>
-              <SelectItem value="Av.İbrahim Bey">{t.responsiblePersons.avIbrahimBey}</SelectItem>
-              <SelectItem value="Av.Kenan Bey">{t.responsiblePersons.avKenanBey}</SelectItem>
-              <SelectItem value="İsmail Bey">{t.responsiblePersons.ismailBey}</SelectItem>
-              <SelectItem value="Ebru Hanım">{t.responsiblePersons.ebruHanim}</SelectItem>
-              <SelectItem value="Pınar Hanım">{t.responsiblePersons.pinarHanim}</SelectItem>
-              <SelectItem value="Yaren Hanım">{t.responsiblePersons.yarenHanim}</SelectItem>
+              <SelectItem value="all">Tüm Sorumlu Kişiler</SelectItem>
+              <SelectItem value="Av.M.Şerif Bey">Av.M.Şerif Bey</SelectItem>
+              <SelectItem value="Ömer Bey">Ömer Bey</SelectItem>
+              <SelectItem value="Av.İbrahim Bey">Av.İbrahim Bey</SelectItem>
+              <SelectItem value="Av.Kenan Bey">Av.Kenan Bey</SelectItem>
+              <SelectItem value="İsmail Bey">İsmail Bey</SelectItem>
+              <SelectItem value="Ebru Hanım">Ebru Hanım</SelectItem>
+              <SelectItem value="Pınar Hanım">Pınar Hanım</SelectItem>
+              <SelectItem value="Yaren Hanım">Yaren Hanım</SelectItem>
             </SelectContent>
           </Select>
           <Select value={görevlendirenFilter} onValueChange={setGörevlendirenFilter}>
             <SelectTrigger className="w-full sm:w-48">
               <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder={t.compensationLetters.assignedByFilter} />
+              <SelectValue placeholder="Görevlendiren Filtrele" />
             </SelectTrigger>
             <SelectContent>
-                         <SelectItem value="all">{t.compensationLetters.allAssignedBy}</SelectItem>
-              <SelectItem value="Av.M.Şerif Bey">{t.responsiblePersons.avMSerifBey}</SelectItem>
-              <SelectItem value="Ömer Bey">{t.responsiblePersons.omerBey}</SelectItem>
-              <SelectItem value="Av.İbrahim Bey">{t.responsiblePersons.avIbrahimBey}</SelectItem>
-              <SelectItem value="Av.Kenan Bey">{t.responsiblePersons.avKenanBey}</SelectItem>
-              <SelectItem value="İsmail Bey">{t.responsiblePersons.ismailBey}</SelectItem>
-              <SelectItem value="Ebru Hanım">{t.responsiblePersons.ebruHanim}</SelectItem>
-              <SelectItem value="Pınar Hanım">{t.responsiblePersons.pinarHanim}</SelectItem>
-              <SelectItem value="Yaren Hanım">{t.responsiblePersons.yarenHanim}</SelectItem>
+              <SelectItem value="all">Tüm Görevlendirenler</SelectItem>
+              <SelectItem value="Av.M.Şerif Bey">Av.M.Şerif Bey</SelectItem>
+              <SelectItem value="Ömer Bey">Ömer Bey</SelectItem>
+              <SelectItem value="Av.İbrahim Bey">Av.İbrahim Bey</SelectItem>
+              <SelectItem value="Av.Kenan Bey">Av.Kenan Bey</SelectItem>
+              <SelectItem value="İsmail Bey">İsmail Bey</SelectItem>
+              <SelectItem value="Ebru Hanım">Ebru Hanım</SelectItem>
+              <SelectItem value="Pınar Hanım">Pınar Hanım</SelectItem>
+              <SelectItem value="Yaren Hanım">Yaren Hanım</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -160,11 +159,11 @@ export default function CompensationLetters() {
         <Card>
           <CardContent className="text-center py-12">
             <p className="text-gray-500">
-              {searchTerm || (statusFilter && statusFilter !== 'all') || (responsiblePersonFilter && responsiblePersonFilter !== 'all') || (görevlendirenFilter && görevlendirenFilter !== 'all') ? t.compensationLetters.noLettersMatchingCriteria : t.compensationLetters.noLettersFound}
+              {searchTerm || (statusFilter && statusFilter !== 'all') || (responsiblePersonFilter && responsiblePersonFilter !== 'all') || (görevlendirenFilter && görevlendirenFilter !== 'all') ? 'Arama kriterlerinize uygun teminat mektubu bulunamadı.' : 'Henüz teminat mektubu bulunmuyor.'}
             </p>
             {!searchTerm && (!statusFilter || statusFilter === 'all') && (!responsiblePersonFilter || responsiblePersonFilter === 'all') && (!görevlendirenFilter || görevlendirenFilter === 'all') && (
               <Button asChild className="mt-4">
-                   <Link to="/compensation-letters/new">{t.compensationLetters.createFirstLetter}</Link>
+                <Link to="/compensation-letters/new">İlk Teminat Mektubunu Oluştur</Link>
               </Button>
             )}
           </CardContent>
@@ -176,14 +175,14 @@ export default function CompensationLetters() {
               <Table>
               <TableHeader>
                 <TableRow>
-                 <TableHead>{t.compensationLetters.letterNo}</TableHead>
-                  <TableHead>{t.compensationLetters.bank}</TableHead>
-                  <TableHead>{t.compensationLetters.customerNo}</TableHead>
-                  <TableHead>{t.compensationLetters.customer}</TableHead>
-                  <TableHead>{t.compensationLetters.court}</TableHead>
-                  <TableHead>{t.compensationLetters.fileNo}</TableHead>
-                  <TableHead>{t.compensationLetters.status}</TableHead>
-                  <TableHead>{t.compensationLetters.actions}</TableHead>
+                  <TableHead>Mektup No</TableHead>
+                  <TableHead>Banka</TableHead>
+                  <TableHead>Müşteri No</TableHead>
+                  <TableHead>Müşteri</TableHead>
+                  <TableHead>Mahkeme</TableHead>
+                  <TableHead>Dosya No</TableHead>
+                  <TableHead>Durumu</TableHead>
+                  <TableHead>İşlemler</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
