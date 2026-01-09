@@ -45,7 +45,7 @@ def test_valid_postgresql_urls():
                     del sys.modules['app.database']
                 import app.database
                 assert True
-
+""
 def test_postgres_url_conversion():
     """Test that postgres:// URLs are converted to postgresql://"""
     with patch.dict(os.environ, {"DATABASE_URL": "postgres://user:pass@host:5432/db"}):
